@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+    "files.exclude": {
+        ".venv": true,
+        ".pytest_cache": true,
+        ".benchmarks": true,
+        "**/__pycache__": true,
+        "dist": true,
+        "poetry.lock": true,
+        "**/.ipynb_checkpoints": true,
+        // It's annoying to display a lot of `__init__.py` files in Explorer.
+        // Comment out this configuration only when editing the `__init__.py` file.
+        // "**/__init__.py": true,
+    },
+}
