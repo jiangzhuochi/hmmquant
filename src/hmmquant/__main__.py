@@ -24,7 +24,7 @@ logrr = logrr[macd.index]
 
 all_data = macd
 
-pivot = 0.68
+pivot = 0.93
 train_rr, test_rr = utils.train_test_split(logrr, pivot)
 
 train, test = utils.train_test_split(all_data, pivot)
@@ -80,14 +80,13 @@ print(state_group)
 # # test
 test = test[:100]
 # 用现在的时间对应下一个时间的收益率，留作后用
-logrrnext = logrr.shift(-1)
+# logrrnext = logrr.shift(-1)
 # 存回测结果的字典
 ret = {}
 for d, v in test.iteritems():
     len_ = 1
     # print(pd.Series({d: v}))
     # 将测试集的元素依次加到训练集
-    train = train.append(pd.Series({d: v}))
     # 在这里，标准化观测序列
     train_np = utils.normalization(train, plus=2).values.reshape(-1, 1)  # type:ignore
     # 这里的m是之前用最初的训练集估计的模型，用来解码序列
@@ -110,11 +109,13 @@ for d, v in test.iteritems():
     direction = direction_map.loc[last_state].idxmax()  # type: ignore
     # print(direction)
     if direction == "rise_p":
-        ret[d] = logrrnext[d]  # type: ignore
+        ret[d] = logrr[d]  # type: ignore
     elif direction == "fall_p":
-        ret[d] = -logrrnext[d]  # type: ignore
+        ret[d] = -logrr[d]  # type: ignore
     # print(ret)
-pd.Series(ret).shift().dropna().cumsum().plot(label='strategy')
+    train = train.append(pd.Series({d: v}))
+
+pd.Series(ret).cumsum().plot(label='strategy')
 logrr[test.index[0] : test.index[-1]].cumsum().plot(label='bench')
 plt.legend()
 plt.show()
