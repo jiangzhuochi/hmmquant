@@ -20,8 +20,6 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
         covariance_type="full",
         init_params="t",
         params="tmc",
-        tol=0.0001,
-        n_iter=10000,
     )
 
     # 固定选择第一个状态以开始
@@ -30,7 +28,6 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
     model.startprob_ = np.append([1], np.zeros(state_num - 1))
 
     # 能否提前锁定 means_？
-    # 给出初始值，但不锁
     # every_group_num
     eg_num = len(training_set) // state_num
     _ts = sorted(training_set.flatten())
@@ -48,7 +45,6 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
     model.means_ = means_
 
     # 锁定 covars_？
-    # 给出初始值，但不锁
     covars_ = []
     for g in all_group:
         covars_.append(np.var(g))

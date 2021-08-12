@@ -6,11 +6,10 @@ import pandas as pd
 from scipy import stats
 
 
-def train_verify_test_split(se: pd.Series) -> Tuple[pd.Series, pd.Series, pd.Series]:
+def train_test_split(se: pd.Series, pivot) -> Tuple[pd.Series, pd.Series]:
     n = len(se)
-    p1 = int(n * 0.3)
-    p2 = n - p1
-    return se[:p1], se[p1:p2], se[p2:]
+    p1 = int(n * pivot)
+    return se[:p1], se[p1:]
 
 
 def normalization(se: pd.Series, plus=2) -> pd.Series:
