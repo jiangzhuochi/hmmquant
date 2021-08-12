@@ -1,9 +1,58 @@
-from typing import Union, overload
+from typing import Tuple, Union, overload
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 
-__all__ = ["ewma_vectorized_safe", "evaluation", "get_logrr"]
+
+def train_verify_test_split(se: pd.Series) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    n = len(se)
+    p1 = int(n * 0.3)
+    p2 = n - p1
+    return se[:p1], se[p1:p2], se[p2:]
+
+
+def normalization(se: pd.Series, plus=2) -> pd.Series:
+
+    # z_score标准化
+    mean, std = se.describe()[["mean", "std"]]
+    z_score_scaling = (se - mean) / std
+
+    # minmax标准化
+    ma, mi = z_score_scaling.describe()[["max", "min"]]
+    min_max_scaling = (z_score_scaling - mi) / (ma - mi) + plus
+
+    # 使用boxcox
+    boxcoxed_data, _ = stats.boxcox(min_max_scaling)  # type: ignore
+
+    return pd.Series(boxcoxed_data, index=se.index)
+
+
+def get_state_rr(rr_seq: pd.Series, state_seq: np.ndarray, target_s) -> pd.Series:
+    """得到某个状态的收益"""
+    rrlist = []
+    for r, s in zip(rr_seq.values, state_seq):
+        if s == target_s:
+            rrlist.append(r)
+        else:
+            rrlist.append(0)
+    return pd.Series(rrlist, index=rr_seq.index)
+
+
+def get_all_state_rr(rr_seq: pd.Series, state_seq: np.ndarray) -> pd.DataFrame:
+    """得到所有状态的收益"""
+    _d = {}
+    all_state = sorted(list(set(state_seq)))
+    for s in all_state:
+        _d[s] = get_state_rr(rr_seq, state_seq, s)
+    return pd.DataFrame(_d)
+
+
+def draw_img(rr_df: pd.DataFrame):
+    fig, ax = plt.subplots(1, 1, figsize=(16, 10))
+    rr_df.cumsum().plot(ax=ax)
+    fig.show()
 
 
 @overload

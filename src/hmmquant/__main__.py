@@ -1,87 +1,84 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-from hmmlearn import hmm
+import collections
+from collections import namedtuple
+from typing import Union, overload
 
-from hmmquant.utils import *
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import requests
+from hmmlearn import hmm
+from pandas.core.frame import DataFrame
+from scipy import stats
+from scipy.stats import kstest
+
+from hmmquant import model, utils
+
+StateGroup = namedtuple("StateGroup", ["rise_state", "fall_state", "shock_state"])
 
 # data_df = futures_main_sina("T0")
 # data_df.to_pickle("data/t0.pkl")
-data_df = pd.read_pickle("data/t0.pkl")
+data = pd.read_csv("./data/data.csv", index_col=0, parse_dates=True)
+c_se = data["close_30min"]
+logrr = utils.get_logrr(c_se)
 
-data_df["date"] = pd.to_datetime(data_df["date"])
-close = data_df[["date", "c"]].set_index("date")["c"]
+train, verify, test = utils.train_verify_test_split(logrr)
+# train = logrr
+# 训练
+train_np = utils.normalization(train, plus=2).values.reshape(-1, 1)  # type:ignore
+state_num = 4  #  <= 隐含状态数
+m = model.run_model(train_np, state_num)
+logprob, state = m.decode(train_np, algorithm="viterbi")
+r = utils.get_all_state_rr(train, state)
 
-logrr = get_logrr(close)
-
-
-q1, q2, q3, m = logrr.quantile([0.25, 0.5, 0.75, 1]).values
-q3 = pd.Series([i for i in logrr.values if i > 0]).quantile(0.8)
-q1 = pd.Series([i for i in logrr.values if i <= 0]).quantile(0.2)
-
-train = logrr[:800]
-test = logrr[800:]
-
-
-def make_label(x):
-    tag = ""
-    if x < q1:
-        tag = 0
-    elif x < q2:
-        tag = 1
-    elif x < q3:
-        tag = 2
-    else:
-        tag = 3
-    return tag
+utils.draw_img(r)
+print(collections.Counter(state))
 
 
-a = list(map(make_label, logrr.values))
-x = list(map(make_label, train.values))
-y = list(map(make_label, test.values))
+def distinguish_state(r: pd.DataFrame, rise_num: int, fall_num: int):
+    assert rise_num + fall_num <= len(r.columns)
+    rise_state = set(r.sum().nlargest(rise_num, keep="all").index)
+    fall_state = set(r.sum().nsmallest(fall_num, keep="all").index)
+    shock_state = set(r.columns) - rise_state - fall_state
+    state_group = StateGroup(list(rise_state), list(fall_state), list(shock_state))
+    return state_group
 
 
-states = ["牛市", "震荡", "熊市"]
-n_states = len(states)
-
-observations = ["强烈上涨", "缓慢上涨", "缓慢下跌", "快速下跌"]
-n_observations = len(observations)
-
-model = hmm.MultinomialHMM(
-    n_components=n_states, n_iter=200000, tol=0.00001, init_params="e"
+state_group = distinguish_state(r, 2, 2)
+transmat_ = pd.DataFrame(m.transmat_)
+a = pd.DataFrame(
+    {
+        "rise_p": transmat_[state_group.rise_state].sum(axis=1),
+        "fall_p": transmat_[state_group.fall_state].sum(axis=1),
+        "shock_p": transmat_[state_group.shock_state].sum(axis=1),
+    }
 )
-model.fit(np.array(x).reshape(-1, 1))
+print(a)
+plt.show()
+
+# # 验证
+# verify = train.append(verify[:1])
+# print(verify)
+# verify_np = utils.normalization(verify, plus=2).values.reshape(-1, 1)  # type:ignore
+# logprob, state = m.decode(verify_np, algorithm="viterbi")
+# print(m.transmat_)
+# print(state)
+# r = utils.get_all_state_rr(verify, state)
 
 
-ob = np.array(a).reshape(-1, 1)  # 全样本
-box = model.predict(ob)
+# utils.draw_img(r)
+# print(collections.Counter(state))
 
-ob2 = np.array(y).reshape(-1, 1)  # 测试集
-box2 = model.predict(ob2)
+# StateGroup = namedtuple("StateGroup", ["rise_state", "fall_state", "shock_state"])
 
-
-position = 0
-rr = 0
-rrlist = []
-for sig, (t, r) in zip(pd.Series(box).values, logrr.items()):
-    if sig == 0:
-        rrlist.append(position * r)
-        rr += position * r
-        position += 1
-
-    elif sig == 1:
-        rrlist.append(position * r)
-
-        rr += position * r
-
-    else:
-        rrlist.append(position * r)
-
-        rr += position * r
-        position = 0
-
-ret = pd.Series(rrlist, index=logrr.index)
-# ret.cumsum().plot()
+# _n = state_num // 3
+# # r.sum().nlargest(_n,keep='all'), r.sum().nsmallest(_n,keep='all'),
+# rise_state = set(r.sum().nlargest(_n, keep="all").index)
+# fall_state = set(r.sum().nsmallest(_n, keep="all").index)
+# shock_state = set(r.columns) - rise_state - fall_state
+# state_group = StateGroup(rise_state, fall_state, shock_state)
+# print(state_group)
 
 # plt.show()
-
-print(evaluation(ret, 0.03))
+# # test_np = utils.normalization(test, plus=2).values.reshape(-1, 1)  # type:ignore
+# # logprob, state = m.decode(test_np, algorithm="viterbi")
+# # r = utils.get_all_state_rr(test, state)
