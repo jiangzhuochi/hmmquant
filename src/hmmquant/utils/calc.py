@@ -48,11 +48,6 @@ def get_all_state_rr(rr_seq: pd.Series, state_seq: np.ndarray) -> pd.DataFrame:
     return pd.DataFrame(_d)
 
 
-def draw_img(rr_df: pd.DataFrame):
-    fig, ax = plt.subplots(1, 1, figsize=(16, 10))
-    rr_df.cumsum().plot(ax=ax)
-    fig.show()
-
 
 @overload
 def get_logrr(close: pd.Series) -> pd.Series:
