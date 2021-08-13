@@ -7,8 +7,15 @@ def draw_layered(rr_df: pd.DataFrame):
     """画分层图，用于展示不同状态的走势
     rr_df 列是不同状态的收益率
     """
-    _, ax = plt.subplots(1, 1, figsize=(16, 10))
-    rr_df.cumsum().plot(ax=ax)
+    index_date = rr_df.index
+    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    index_x = list(range(len(index_date)))
+    pretty_x = index_x[:: len(index_x) // 20]
+    pretty_date = index_date[:: len(index_date) // 20]
+    ax.set_xticks(pretty_x)
+    ax.set_xticklabels(pretty_date, rotation=30)
+    ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
+    ax.legend()
     plt.show()
 
 
