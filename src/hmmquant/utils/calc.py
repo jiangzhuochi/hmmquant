@@ -1,15 +1,21 @@
-from typing import Tuple, Union, overload
+import collections
+import math
+import os
+from collections import namedtuple
+from typing import Literal, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import requests
+from hmmlearn import hmm
+from hmmquant import model, utils
 from scipy import stats
+from scipy.stats import kstest
 
-
-def train_test_split(se: pd.Series, pivot) -> Tuple[pd.Series, pd.Series]:
-    n = len(se)
-    p1 = int(n * pivot)
-    return se[:p1], se[p1:]
+CPUs = os.cpu_count()
+if CPUs is None:
+    CPUs = 4
 
 
 def normalization(se: pd.Series, plus=2) -> pd.Series:
@@ -46,7 +52,6 @@ def get_all_state_rr(rr_seq: pd.Series, state_seq: np.ndarray) -> pd.DataFrame:
     for s in all_state:
         _d[s] = get_state_rr(rr_seq, state_seq, s)
     return pd.DataFrame(_d)
-
 
 
 @overload
@@ -119,6 +124,72 @@ def evaluation(
         columns=["累计收益", "年化收益", "年化波动率", "夏普比率", "最大回撤"],
     )
     return df
+
+
+def calc_backtest_params(
+    data_len: int,
+    train_min_len: int,
+    method: Literal["expanding", "rolling"] = "expanding",
+):
+    # 使用 calc_backtest_params2 
+    # 先只写 method = "expanding" 的情况
+
+    assert CPUs is not None
+    # 最大分组个数
+    group_num = 5 * CPUs
+    # 每组数据个数，向上取整
+    every_group_len = math.ceil(data_len / group_num)
+    # 当每组数据个数 不大于 训练集要求最小的个数时 ...
+    while every_group_len <= train_min_len:
+        # ... 减少分组个数
+        group_num -= 1
+        if group_num == 0:
+            raise Exception("训练数据不足")
+        every_group_len = math.ceil(data_len / group_num)
+
+    # 最小训练长度会限制第一个组的大小，再分组上还可以改进
+    # 例如在总数中单独把第一组划分出来，其余的等分就好了
+    # 写好了才想起来，于是写了 calc_backtest_params2，更好
+
+    # 我笔记本配置如下
+    # MacBook Air (Retina, 13-inch, 2020)
+    # 1.1 GHz 四核Intel Core i5
+    # 8 GB 3733 MHz LPDDR4X
+    # 一个进程吃 CPU 65% 左右
+    # 两个进程吃满
+
+    ends = [*range(every_group_len, data_len + every_group_len, every_group_len)]
+    # train_min_len + 1 是为了将最后一个日期提取出来
+    # 便于索引收益率，记录模型对该天的涨跌判断
+    # 训练只用 train_min_len 个
+    nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
+    starts = [0 for _ in range(len(ends))]
+    return list(zip(starts, ends, nums))
+
+
+def calc_backtest_params2(
+    data_len: int,
+    train_min_len: int,
+    method: Literal["expanding", "rolling"] = "expanding",
+):
+    # 先只写 method = "expanding" 的情况
+    # todo: rolling
+    # 显然 rolling 的回测速度会快得多
+
+    assert CPUs is not None
+    group_num = 5 * CPUs
+    if data_len <= train_min_len:
+        raise Exception("训练数据不足")
+    every_group_len = math.ceil((data_len - train_min_len) / group_num)
+
+    ends = [
+        *range(
+            train_min_len + every_group_len, data_len + every_group_len, every_group_len
+        )
+    ]
+    nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
+    starts = [0 for _ in range(len(ends))]
+    return list(zip(starts, ends, nums))
 
 
 # https://stackoverflow.com/questions/42869495/numpy-version-of-exponential-weighted-moving-average-equivalent-to-pandas-ewm

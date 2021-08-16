@@ -108,7 +108,7 @@ def calc_next_rr(_d, *, state_num=4):
         return 0
 
 
-# rr = all_data[:].expanding(3001).apply(calc_next_rr).dropna()
+rr = all_data[:].expanding(3001).apply(calc_next_rr).dropna()
 # print(rr)
 
 contrast_rr = pd.DataFrame(
