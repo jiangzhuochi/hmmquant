@@ -129,10 +129,9 @@ def evaluation(
 def calc_backtest_params(
     data_len: int,
     train_min_len: int,
-    method: Literal["expanding", "rolling"] = "expanding",
+    method: Literal["expanding", "rolling"] = "rolling",
 ):
-    # 使用 calc_backtest_params2 
-    # 先只写 method = "expanding" 的情况
+    # 使用 calc_backtest_params2
 
     assert CPUs is not None
     # 最大分组个数
@@ -170,25 +169,26 @@ def calc_backtest_params(
 def calc_backtest_params2(
     data_len: int,
     train_min_len: int,
-    method: Literal["expanding", "rolling"] = "expanding",
+    method: Literal["expanding", "rolling"] = "rolling",
 ):
-    # 先只写 method = "expanding" 的情况
-    # todo: rolling
-    # 显然 rolling 的回测速度会快得多
+    """计算多进程回测需要的参数"""
 
     assert CPUs is not None
     group_num = 5 * CPUs
     if data_len <= train_min_len:
         raise Exception("训练数据不足")
     every_group_len = math.ceil((data_len - train_min_len) / group_num)
-
     ends = [
         *range(
             train_min_len + every_group_len, data_len + every_group_len, every_group_len
         )
     ]
-    nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
-    starts = [0 for _ in range(len(ends))]
+    if method == "expanding":
+        nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
+        starts = [0 for _ in range(len(ends))]
+    elif method == "rolling":
+        nums = [train_min_len + 1 for _ in range(len(ends))]
+        starts = [0, *map(lambda i: i - train_min_len, ends[:-1])]
     return list(zip(starts, ends, nums))
 
 

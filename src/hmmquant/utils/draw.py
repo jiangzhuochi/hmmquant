@@ -1,6 +1,12 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.stats import kstest
+
+IMG_DIR = Path(".") / "img"
+if not IMG_DIR.is_dir():
+    IMG_DIR.mkdir()
 
 
 def draw_layered(rr_df: pd.DataFrame):
@@ -8,7 +14,7 @@ def draw_layered(rr_df: pd.DataFrame):
     rr_df 列是不同状态的收益率
     """
     index_date = rr_df.index
-    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(16, 9))
     index_x = list(range(len(index_date)))
     pretty_x = index_x[:: len(index_x) // 20]
     pretty_date = index_date[:: len(index_date) // 20]
@@ -17,6 +23,7 @@ def draw_layered(rr_df: pd.DataFrame):
     ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
     ax.legend()
     plt.show()
+    fig.savefig(IMG_DIR / "layered.png", dpi=300)
 
 
 def draw_scatter(state, state_group, index_date, close):
@@ -36,14 +43,14 @@ def draw_scatter(state, state_group, index_date, close):
         else:
             color_list.append("gray")
 
-    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(16, 9))
     index_x = list(range(len(index_date)))
     pretty_x = index_x[:: len(index_x) // 20]
     pretty_date = index_date[:: len(index_date) // 20]
     ax.set_xticks(pretty_x)
     ax.set_xticklabels(pretty_date, rotation=30)
-    # print(index_date)
     ax.scatter(
         index_x, close[1 : len(index_date) + 1].values, color=color_list, s=7  # type: ignore
     )
     plt.show()
+    fig.savefig(IMG_DIR / "scatter.png", dpi=300)
