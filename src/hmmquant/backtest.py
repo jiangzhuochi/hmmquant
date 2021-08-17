@@ -14,7 +14,7 @@ LOGRR = INDICATOR["LOGRR"]
 close_se = INDICATOR["close_se"]
 
 
-def peek(all_data, state_num):
+def peek(all_data, state_num, **_):
     """看一下分层情况"""
     train_np = utils.normalization(all_data, plus=2).values.reshape(  # type:ignore
         -1, 1
@@ -56,16 +56,12 @@ def calc_next_rr(_d, *, state_num):
     # 只关心当前最后一个隐藏状态，我们用它来预测下一个状态是属于涨组还是跌组
     last_state = state[-1]
 
-    # print(f"{last_state=}")
-    # 将m的某个状态转移到涨组和跌组状态的概率算出
-    # 方向映射表
-
     # 注意，用标签切片是前闭后闭的，使用second_end
     r = utils.get_all_state_rr(LOGRR[start:second_end], state)
     state_group = model.distinguish_state(r, 1, 1)
+
     if last_state in state_group.rise_state:
         return LOGRR[end]
-
     elif last_state in state_group.fall_state:
         return -LOGRR[end]
     else:
@@ -113,3 +109,27 @@ def backtest(all_data, method, state_num, train_min_len):
         contrast_rr,
         name=(str(all_data.name), str(method), f"{state_num},{train_min_len}"),
     )
+
+
+def peek2(all_data, state_num, rr, close_param, **_):
+    """用别的数据，看一下分层情况"""
+    train_np = utils.normalization(all_data, plus=2).values.reshape(  # type:ignore
+        -1, 1
+    )  # type:ignore
+
+    m = model.run_model(train_np, state_num)
+    print(m.means_)
+    logprob, state = m.decode(train_np, algorithm="viterbi")
+    start, *_, _, end = all_data.index
+
+    r = utils.get_all_state_rr(rr[start:end], state)
+    print(r)
+    state_group = model.distinguish_state2(r)
+
+    utils.draw_layered(r, name="temp")
+    plt.close()
+    print(collections.Counter(state))
+    print(state_group)
+    utils.draw_scatter(state, state_group, index_date=all_data.index, close=close_param)
+    plt.close()
+    raise

@@ -1,16 +1,8 @@
 from collections import namedtuple
-from typing import Union, overload
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import requests
 from hmmlearn import hmm
-from pandas.core.frame import DataFrame
-from scipy import stats
-from scipy.stats import kstest
-
-from hmmquant import utils
 
 StateGroup = namedtuple("StateGroup", ["rise_state", "fall_state", "shock_state"])
 
@@ -74,20 +66,8 @@ def distinguish_state(r: pd.DataFrame, rise_num: int, fall_num: int):
     return state_group
 
 
-# def distinguish_state2(r: pd.DataFrame):
-#     rise_count = (r > 0).astype(int).sum(axis=0)
-#     fall_count = (r < 0).astype(int).sum(axis=0)
-#     print(rise_count>fall_count)
-
-#     # rise_state = set(r.sum().nlargest(rise_num, keep="all").index)
-#     # fall_state = set(r.sum().nsmallest(fall_num, keep="all").index)
-#     # shock_state = set(r.columns) - rise_state - fall_state
-#     # state_group = StateGroup(list(rise_state), list(fall_state), list(shock_state))
-#     return state_group
-
-
-# def distinguish_state(r: pd.DataFrame):
-#     rise_state = set(r.sum()[r.sum() >= 0].index)  # type: ignore
-#     fall_state = set(r.columns) - rise_state
-#     state_group = StateGroup(list(rise_state), list(fall_state), list())
-#     return state_group
+def distinguish_state2(r: pd.DataFrame, *_):
+    rise_state = set(r.sum()[r.sum() >= 0].index)  # type: ignore
+    fall_state = set(r.columns) - rise_state
+    state_group = StateGroup(list(rise_state), list(fall_state), list())
+    return state_group
