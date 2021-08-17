@@ -7,8 +7,7 @@ import talib
 from hmmquant import utils
 
 DATA_DIR = Path(".") / "data"
-if not DATA_DIR.is_dir():
-    DATA_DIR.mkdir()
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def update_data() -> pd.DataFrame:

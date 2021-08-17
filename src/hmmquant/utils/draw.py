@@ -1,17 +1,18 @@
+from functools import reduce
 from pathlib import Path
+from typing import Iterable, Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from scipy.stats import kstest
 
 IMG_DIR = Path(".") / "img"
-if not IMG_DIR.is_dir():
-    IMG_DIR.mkdir()
+IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def draw_layered(rr_df: pd.DataFrame):
+def draw_layered(rr_df: pd.DataFrame, name: Union[str, Iterable[str]]):
     """画分层图，用于展示不同状态的走势
     rr_df 列是不同状态的收益率
+    name 是保存的文件名
     """
     index_date = rr_df.index
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(16, 9))
@@ -22,8 +23,13 @@ def draw_layered(rr_df: pd.DataFrame):
     ax.set_xticklabels(pretty_date, rotation=30)
     ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
     ax.legend()
-    plt.show()
-    fig.savefig(IMG_DIR / "layered.png", dpi=300)
+    if isinstance(name, str):
+        fig.savefig(IMG_DIR / f"{name}.png", dpi=300)
+    else:
+        # 可迭代的
+        pathname = reduce(lambda x, y: x / y, name, IMG_DIR)
+        pathname.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(pathname, dpi=300)
 
 
 def draw_scatter(state, state_group, index_date, close):
