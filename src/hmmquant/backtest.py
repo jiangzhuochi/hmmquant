@@ -116,10 +116,17 @@ def backtest(
     state_num,
     train_min_len,
     every_group_len: Optional[int] = None,
+    return_indicator: Literal["yearr", "sharpe", "maxdd"] = "yearr",
 ):
     """如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
     此时 method 必须为 None, 见 calc_backtest_params2 和 _backtest_inner
     然后设置 is_estimate_once 为 True"""
+
+    strategy_name = (
+        str(all_data.name),
+        str(method),
+        f"{state_num},{train_min_len},{every_group_len}",
+    )
 
     is_estimate_once = False
     if every_group_len is not None:
@@ -145,7 +152,6 @@ def backtest(
                 ),
             )
         )
-
     contrast_rr = pd.DataFrame(
         {
             "strategy": rr,
@@ -153,14 +159,9 @@ def backtest(
             "-bench": -LOGRR[rr.index[0] : rr.index[-1]],
         }
     )
-    utils.draw_layered(
-        contrast_rr,
-        name=(
-            str(all_data.name),
-            str(method),
-            f"{state_num},{train_min_len},{every_group_len}",
-        ),
-    )
+    utils.draw_layered(contrast_rr, name=strategy_name)
+    evaluation = utils.get_evaluation(contrast_rr, 0.00)
+    return evaluation.loc["strategy", return_indicator]
 
 
 def peek2(all_data, state_num, rr, close_param, **_):

@@ -4,6 +4,7 @@ from typing import Iterable, Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn
 
 IMG_DIR = Path(".") / "img"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
@@ -60,3 +61,9 @@ def draw_scatter(state, state_group, index_date, close):
     )
     plt.show()
     fig.savefig(IMG_DIR / "scatter.png", dpi=300)
+
+
+def draw_heatmap(data, name):
+    fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(9, 9))
+    seaborn.heatmap(data, ax=ax)
+    fig.savefig(IMG_DIR / f"{name}.png", dpi=300)

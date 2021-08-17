@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        all_data=MACD[:],
+        all_data=MA5["2020-05-15":"2021-05-14"],
         # 训练集序列输入方法, rolling | expanding | None
         method=None,
         # 隐含状态数
@@ -38,16 +38,33 @@ if __name__ == "__main__":
         train_min_len=240,
         # 如果指定，表示每间隔 every_group_len 估计一次模型
         every_group_len=320,
+        return_indicator="yearr",
     )
-    for state_num in range(3, 9):
-        for train_min_len in range(160, 161):
-            for every_group_len in range(320, 321):
-                config.update(
-                    dict(
-                        state_num=state_num,
-                        train_min_len=train_min_len,
-                        every_group_len=every_group_len,
-                    )
+
+    train_min_len_range = range(16 * 15, 16 * 35, 16 * 5)
+    every_group_len_range = range(16 * 1, 16 * 11, 16 * 5)
+    grid_search_name = (
+        f"{config['all_data'].name}{train_min_len_range}{every_group_len_range}"
+    )
+    # train_min_len
+    tml_dict = {}
+    for train_min_len in train_min_len_range:
+        # every_group_len
+        egl_dict = {}
+        for every_group_len in every_group_len_range:
+            config.update(
+                dict(
+                    train_min_len=train_min_len,
+                    every_group_len=every_group_len,
                 )
-                # peek2(rr=LOGRR, close_param=close_se, **config)
-                backtest(**config)
+            )
+            # peek2(rr=LOGRR, close_param=close_se, **config)
+            ret = backtest(**config)
+
+            egl_dict[every_group_len] = ret
+        tml_dict[train_min_len] = egl_dict
+
+    backtest_df = pd.DataFrame(tml_dict)
+    backtest_df.index.name = "every_group_len"
+    backtest_df.columns.name = "train_min_len"
+    utils.draw_heatmap(backtest_df, name=grid_search_name)

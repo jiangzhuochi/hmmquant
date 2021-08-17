@@ -13,6 +13,7 @@ hmmlearn = "^0.2.6"
 requests = "^2.26.0"
 scipy = "^1.6.1"
 # TA-Lib = "^0.4.1" 需要手动安装
+seaborn = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

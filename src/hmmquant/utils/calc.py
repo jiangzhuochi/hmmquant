@@ -81,8 +81,8 @@ def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.Data
     return logrr
 
 
-def evaluation(
-    rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float, bench=False
+def get_evaluation(
+    rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float = 0.0
 ) -> pd.DataFrame:
     """计算评价指标
 
@@ -98,31 +98,22 @@ def evaluation(
     DataFrame
         评价指标表
     """
-    if bench:
-        local_rr = rr[["Strategy", "Benchmark"]]
-        cum_rr = local_rr.cumsum()
-    else:
-        local_rr = rr
-        cum_rr = local_rr.cumsum()
+
+    cum_rr = rr.cumsum()
     # 累计收益
     cr = cum_rr.iloc[-1]
     # 年化收益
     yearr = (1 + cr) ** (250 / len(rr)) - 1
     # 年化波动率
-    yearstd = local_rr.std() * 250 ** 0.5
-    # 夏普比率
+    yearstd = rr.std() * 250 ** 0.5
+    # 收益波动比
     sharpe = (yearr - risk_free_rr) / yearstd  # type: ignore
     # 最大回撤
-    if bench:
-        max_drawdown = (cum_rr.expanding().max() - cum_rr).apply(max)  # type: ignore
-    else:
-        max_drawdown = max(cum_rr.expanding().max() - cum_rr)  # type: ignore
-    # df = pd.concat([cr, yearr, yearstd, sharpe, max_drawdown], axis=1)  # type: ignore
-    # df.columns = ["累计收益", "年化收益", "年化波动率", "夏普比率", "最大回撤"]
-    df = pd.DataFrame(
-        [[cr, yearr, yearstd, sharpe, max_drawdown]],
-        columns=["累计收益", "年化收益", "年化波动率", "夏普比率", "最大回撤"],
-    )
+    max_drawdown = (cum_rr.expanding().max() - cum_rr).apply(max)  # type: ignore
+
+    df = pd.concat([cr, yearr, yearstd, sharpe, max_drawdown], axis=1)  # type: ignore
+    # ["累计收益", "年化收益", "年化波动率", "收益波动比", "最大回撤"]
+    df.columns = ["cr", "yearr", "yearstd", "sharpe", "maxdd"]
     return df
 
 
