@@ -57,10 +57,10 @@ def test_calc_backtest_params2():
     train_min_len = 30
 
     exp_params = utils.calc_backtest_params2(
-        data_len, train_min_len=train_min_len, method="expanding"
+        data_len, train_min_len=train_min_len, method="expanding", every_group_len=None
     )
     rol_params = utils.calc_backtest_params2(
-        data_len, train_min_len=train_min_len, method="rolling"
+        data_len, train_min_len=train_min_len, method="rolling", every_group_len=None
     )
     print("\n", exp_params)
     print("\n", rol_params)

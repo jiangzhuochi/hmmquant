@@ -28,15 +28,26 @@ if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        all_data=MACD[-2000:],
+        all_data=MACD[-1000:],
         # 训练集序列输入方法, rolling | expanding
-        method="rolling",
+        method="expanding",
         # 隐含状态数
         state_num=4,
-        # 对于 rolling, 则是训练集个
+        # 对于 rolling, 则是训练集个数
         # 对于 expanding, 则是最小的训练集个数
-        train_min_len=1600,
+        train_min_len=240,
+        # 如果指定，表示每间隔 every_group_len 估计一次模型
+        every_group_len=320,
     )
-
-    # peek2(rr=LOGRR, close_param=close_se, **config)
-    backtest(**config)
+    for state_num in range(3, 7):
+        for train_min_len in range(80, 80 * 5, 80):
+            for every_group_len in range(80, 80 * 5, 80):
+                config.update(
+                    dict(
+                        state_num=state_num,
+                        train_min_len=train_min_len,
+                        every_group_len=every_group_len,
+                    )
+                )
+                # peek2(rr=LOGRR, close_param=close_se, **config)
+                backtest(**config)

@@ -2,7 +2,7 @@ import collections
 import math
 import os
 from collections import namedtuple
-from typing import Literal, Tuple, Union, overload
+from typing import Literal, Optional, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -169,15 +169,22 @@ def calc_backtest_params(
 def calc_backtest_params2(
     data_len: int,
     train_min_len: int,
-    method: Literal["expanding", "rolling"] = "rolling",
+    method: Literal["expanding", "rolling"],
+    every_group_len: Optional[int],
 ):
-    """计算多进程回测需要的参数"""
+    """计算多进程回测需要的参数
+    如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
+    且 method 必须为 expanding"""
 
     assert CPUs is not None
-    group_num = 5 * CPUs
     if data_len <= train_min_len:
         raise Exception("训练数据不足")
-    every_group_len = math.ceil((data_len - train_min_len) / group_num)
+
+    if every_group_len is None:
+        every_group_len = math.ceil((data_len - train_min_len) / (5 * CPUs))
+    else:
+        assert method == "expanding"
+
     ends = [
         *range(
             train_min_len + every_group_len, data_len + every_group_len, every_group_len
