@@ -126,55 +126,55 @@ def evaluation(
     return df
 
 
-def calc_backtest_params(
-    data_len: int,
-    train_min_len: int,
-    method: Literal["expanding", "rolling"] = "rolling",
-):
-    # 使用 calc_backtest_params2
+# def calc_backtest_params(
+#     data_len: int,
+#     train_min_len: int,
+#     method: Optional[Literal["expanding", "rolling"]] = "rolling",
+# ):
+#     # 使用 calc_backtest_params2
 
-    assert CPUs is not None
-    # 最大分组个数
-    group_num = 5 * CPUs
-    # 每组数据个数，向上取整
-    every_group_len = math.ceil(data_len / group_num)
-    # 当每组数据个数 不大于 训练集要求最小的个数时 ...
-    while every_group_len <= train_min_len:
-        # ... 减少分组个数
-        group_num -= 1
-        if group_num == 0:
-            raise Exception("训练数据不足")
-        every_group_len = math.ceil(data_len / group_num)
+#     assert CPUs is not None
+#     # 最大分组个数
+#     group_num = 5 * CPUs
+#     # 每组数据个数，向上取整
+#     every_group_len = math.ceil(data_len / group_num)
+#     # 当每组数据个数 不大于 训练集要求最小的个数时 ...
+#     while every_group_len <= train_min_len:
+#         # ... 减少分组个数
+#         group_num -= 1
+#         if group_num == 0:
+#             raise Exception("训练数据不足")
+#         every_group_len = math.ceil(data_len / group_num)
 
-    # 最小训练长度会限制第一个组的大小，再分组上还可以改进
-    # 例如在总数中单独把第一组划分出来，其余的等分就好了
-    # 写好了才想起来，于是写了 calc_backtest_params2，更好
+#     # 最小训练长度会限制第一个组的大小，再分组上还可以改进
+#     # 例如在总数中单独把第一组划分出来，其余的等分就好了
+#     # 写好了才想起来，于是写了 calc_backtest_params2，更好
 
-    # 我笔记本配置如下
-    # MacBook Air (Retina, 13-inch, 2020)
-    # 1.1 GHz 四核Intel Core i5
-    # 8 GB 3733 MHz LPDDR4X
-    # 一个进程吃 CPU 65% 左右
-    # 两个进程吃满
+#     # 我笔记本配置如下
+#     # MacBook Air (Retina, 13-inch, 2020)
+#     # 1.1 GHz 四核Intel Core i5
+#     # 8 GB 3733 MHz LPDDR4X
+#     # 一个进程吃 CPU 65% 左右
+#     # 两个进程吃满
 
-    ends = [*range(every_group_len, data_len + every_group_len, every_group_len)]
-    # train_min_len + 1 是为了将最后一个日期提取出来
-    # 便于索引收益率，记录模型对该天的涨跌判断
-    # 训练只用 train_min_len 个
-    nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
-    starts = [0 for _ in range(len(ends))]
-    return list(zip(starts, ends, nums))
+#     ends = [*range(every_group_len, data_len + every_group_len, every_group_len)]
+#     # train_min_len + 1 是为了将最后一个日期提取出来
+#     # 便于索引收益率，记录模型对该天的涨跌判断
+#     # 训练只用 train_min_len 个
+#     nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
+#     starts = [0 for _ in range(len(ends))]
+#     return list(zip(starts, ends, nums))
 
 
 def calc_backtest_params2(
     data_len: int,
     train_min_len: int,
-    method: Literal["expanding", "rolling"],
+    method: Optional[Literal["expanding", "rolling"]],
     every_group_len: Optional[int],
 ):
     """计算多进程回测需要的参数
     如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
-    且 method 必须为 expanding"""
+    且 method 必须为 None"""
 
     assert CPUs is not None
     if data_len <= train_min_len:
@@ -183,7 +183,7 @@ def calc_backtest_params2(
     if every_group_len is None:
         every_group_len = math.ceil((data_len - train_min_len) / (5 * CPUs))
     else:
-        assert method == "expanding"
+        assert method is None
 
     ends = [
         *range(
@@ -193,7 +193,10 @@ def calc_backtest_params2(
     if method == "expanding":
         nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
         starts = [0 for _ in range(len(ends))]
-    elif method == "rolling":
+
+    # method is None 时，采用 rolling 的参数
+    # starts 是不断向后推进的
+    elif method == "rolling" or method is None:
         nums = [train_min_len + 1 for _ in range(len(ends))]
         starts = [0, *map(lambda i: i - train_min_len, ends[:-1])]
     return list(zip(starts, ends, nums))

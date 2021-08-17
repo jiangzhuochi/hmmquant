@@ -15,7 +15,7 @@ def test_version():
     assert __version__ == "0.1.0"
 
 
-def test_calc_backtest_params():
+# def test_calc_backtest_params():
 
     # 举例说明，输出
     # (0, 6, 6) (0, 12, 7) (0, 18, 13) ...
@@ -31,9 +31,9 @@ def test_calc_backtest_params():
 
     # 最后一个工作 (0, 84, 79)，输出 [r_78, r_79, r_80]
     # 然后拼接所有进程的结果得到回测收益率序列 [r_5, r_6, r_7, ..., r_80]
-    all_data = list(range(81))
-    backtest_params = utils.calc_backtest_params(len(all_data), train_min_len=5)
-    print("\n", backtest_params)
+    # all_data = list(range(81))
+    # backtest_params = utils.calc_backtest_params(len(all_data), train_min_len=5)
+    # print("\n", backtest_params)
     # [
     #     (0, 6, 6),
     #     (0, 12, 7),

@@ -28,9 +28,9 @@ if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        all_data=MACD[-1000:],
-        # 训练集序列输入方法, rolling | expanding
-        method="expanding",
+        all_data=MACD[-10000:],
+        # 训练集序列输入方法, rolling | expanding | None
+        method=None,
         # 隐含状态数
         state_num=4,
         # 对于 rolling, 则是训练集个数
@@ -40,8 +40,8 @@ if __name__ == "__main__":
         every_group_len=320,
     )
     for state_num in range(3, 7):
-        for train_min_len in range(80, 80 * 5, 80):
-            for every_group_len in range(80, 80 * 5, 80):
+        for train_min_len in range(160, 161):
+            for every_group_len in range(320, 321):
                 config.update(
                     dict(
                         state_num=state_num,

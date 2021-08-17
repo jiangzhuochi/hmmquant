@@ -78,7 +78,7 @@ def _backtest_inner(
     num,
     *,
     data,
-    method: Literal["expanding", "rolling"],
+    method: Optional[Literal["expanding", "rolling"]],
     state_num: int,
     is_estimate_once: bool,
 ):
@@ -94,6 +94,13 @@ def _backtest_inner(
             -1, 1
         )
         m = model.run_model(train_np, state_num)
+        print(start, num)
+        # 估计一次时，确保 method 未给出
+        # 设置 method = "expanding" 保证单个模型回测起点相同
+        assert method is None
+        method = "expanding"
+    else:
+        assert method is not None
 
     return (
         getattr(data[start:end], method)(num)
@@ -111,13 +118,13 @@ def backtest(
     every_group_len: Optional[int] = None,
 ):
     """如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
-    此时 method 必须为 expanding，这是因为每个模型的起点是固定的
+    此时 method 必须为 None, 见 calc_backtest_params2 和 _backtest_inner
     然后设置 is_estimate_once 为 True"""
 
     is_estimate_once = False
     if every_group_len is not None:
         assert isinstance(every_group_len, int)
-        assert method == "expanding"
+        assert method is None
         is_estimate_once = True
 
     with Pool(processes=CPUs) as p:
