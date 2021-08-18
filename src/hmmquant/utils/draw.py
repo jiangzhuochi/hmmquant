@@ -1,4 +1,4 @@
-from functools import reduce
+from functools import reduce, wraps
 from pathlib import Path
 from typing import Iterable, Union
 
@@ -10,7 +10,23 @@ IMG_DIR = Path(".") / "img"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def draw_layered(rr_df: pd.DataFrame, name: Union[str, Iterable[str]]):
+def make_name(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        name = kwargs.pop("name")
+        if isinstance(name, str):
+            name = IMG_DIR / name
+        else:
+            # 可迭代的
+            name = reduce(lambda x, y: x / y, name, IMG_DIR)
+        name.parent.mkdir(parents=True, exist_ok=True)
+        func(*args, name=str(name), **kwargs)
+
+    return inner
+
+
+@make_name
+def draw_layered(rr_df: pd.DataFrame, name):
     """画分层图，用于展示不同状态的走势
     rr_df 列是不同状态的收益率
     name 是保存的文件名
@@ -24,13 +40,8 @@ def draw_layered(rr_df: pd.DataFrame, name: Union[str, Iterable[str]]):
     ax.set_xticklabels(pretty_date, rotation=30)
     ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
     ax.legend()
-    if isinstance(name, str):
-        fig.savefig(IMG_DIR / f"{name}.png", dpi=300)
-    else:
-        # 可迭代的
-        pathname = reduce(lambda x, y: x / y, name, IMG_DIR)
-        pathname.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(pathname, dpi=300)
+    print(name)
+    fig.savefig(f"{name}.png", dpi=160)
 
 
 def draw_scatter(state, state_group, index_date, close):
@@ -62,8 +73,8 @@ def draw_scatter(state, state_group, index_date, close):
     plt.show()
     fig.savefig(IMG_DIR / "scatter.png", dpi=300)
 
-
+@make_name
 def draw_heatmap(data, name):
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(9, 9))
     seaborn.heatmap(data, ax=ax)
-    fig.savefig(IMG_DIR / f"{name}.png", dpi=300)
+    fig.savefig(f"{name}.png", dpi=160)

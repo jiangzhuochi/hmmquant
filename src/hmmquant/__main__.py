@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        all_data=MA5["2020-05-15":"2021-05-14"],
+        all_data=CCI["2020-05-15":"2021-05-14"][-500:],
         # 训练集序列输入方法, rolling | expanding | None
         method=None,
         # 隐含状态数
@@ -41,10 +41,12 @@ if __name__ == "__main__":
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(16 * 15, 16 * 35, 16 * 5)
-    every_group_len_range = range(16 * 1, 16 * 11, 16 * 5)
+    train_min_len_range = range(16 * 15, 16 * 35, 16 * 50)
+    every_group_len_range = range(16 * 10, 16 * 11, 16 * 50)
+    data_se: pd.Series = config["all_data"]  # type:ignore
     grid_search_name = (
-        f"{config['all_data'].name}{train_min_len_range}{every_group_len_range}"
+        f"{data_se.name}",
+        f"{train_min_len_range}{every_group_len_range}",
     )
     # train_min_len
     tml_dict = {}

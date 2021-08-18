@@ -94,7 +94,6 @@ def _backtest_inner(
             -1, 1
         )
         m = model.run_model(train_np, state_num)
-        print(start, num)
         # 估计一次时，确保 method 未给出
         # 设置 method = "expanding" 保证单个模型回测起点相同
         assert method is None
