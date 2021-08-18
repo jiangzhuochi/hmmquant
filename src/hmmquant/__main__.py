@@ -16,19 +16,13 @@ CCI = INDICATOR["CCI"]
 RSI = INDICATOR["RSI"]
 close_se = INDICATOR["close_se"]
 
-# data = pd.read_csv("./data/data.csv", index_col=0, parse_dates=True)
-# c_se = data["close_30min"]
-# logrr = utils.get_logrr(c_se)
-# macd = data["MACD_12_26_30min"][25:]
-# logrr = logrr[macd.index]
-
-# all_data = macd
 
 if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        all_data=CCI["2020-05-15":"2021-05-14"][-500:],
+        # all_data=RSI["2020-05-15":"2021-05-14"],
+        all_data=RSI,
         # 训练集序列输入方法, rolling | expanding | None
         method=None,
         # 隐含状态数
@@ -41,12 +35,11 @@ if __name__ == "__main__":
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(16 * 15, 16 * 35, 16 * 50)
-    every_group_len_range = range(16 * 10, 16 * 11, 16 * 50)
-    data_se: pd.Series = config["all_data"]  # type:ignore
+    train_min_len_range = range(16 * 20, 16 * 21, 16 * 10)
+    every_group_len_range = range(16 * 20, 16 * 21, 16 * 10)
     grid_search_name = (
-        f"{data_se.name}",
-        f"{train_min_len_range}{every_group_len_range}",
+        f"{config['all_data'].name}",  # type:ignore
+        f"{config['state_num']}{train_min_len_range}{every_group_len_range}",  # type:ignore
     )
     # train_min_len
     tml_dict = {}
@@ -69,4 +62,4 @@ if __name__ == "__main__":
     backtest_df = pd.DataFrame(tml_dict)
     backtest_df.index.name = "every_group_len"
     backtest_df.columns.name = "train_min_len"
-    utils.draw_heatmap(backtest_df, name=grid_search_name)
+    # utils.draw_heatmap(backtest_df, name=grid_search_name)
