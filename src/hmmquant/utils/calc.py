@@ -1,16 +1,17 @@
-import collections
 import math
 import os
 from collections import namedtuple
-from typing import Literal, Optional, Tuple, Union, overload
+from functools import reduce, wraps
+from pathlib import Path
+from typing import Literal, Optional, Union, overload
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from hmmlearn import hmm
-from hmmquant import model, utils
+from pandas.core.frame import DataFrame
 from scipy import stats
-from scipy.stats import kstest
+
+CSV_DIR = Path(".") / "csv"
+CSV_DIR.mkdir(parents=True, exist_ok=True)
 
 CPUs = os.cpu_count()
 if CPUs is None:
@@ -80,8 +81,25 @@ def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.Data
     return logrr
 
 
+# 可以改成带参数装饰器
+def make_name_with_CSV_DIR(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        name = kwargs.pop("name")
+        if isinstance(name, str):
+            name = CSV_DIR / name
+        else:
+            # 可迭代的
+            name = reduce(lambda x, y: x / y, name, CSV_DIR)
+        name.parent.mkdir(parents=True, exist_ok=True)
+        return func(*args, name=str(name), **kwargs) 
+
+    return inner
+
+
+@make_name_with_CSV_DIR
 def get_evaluation(
-    rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float = 0.0
+    rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float, name
 ) -> pd.DataFrame:
     """计算评价指标
 
@@ -110,9 +128,11 @@ def get_evaluation(
     # 最大回撤
     max_drawdown = (cum_rr.expanding().max() - cum_rr).apply(max)  # type: ignore
 
-    df = pd.concat([cr, yearr, yearstd, sharpe, max_drawdown], axis=1)  # type: ignore
+    df: DataFrame = pd.concat([cr, yearr, yearstd, sharpe, max_drawdown], axis=1)  # type: ignore
     # ["累计收益", "年化收益", "年化波动率", "收益波动比", "最大回撤"]
     df.columns = ["cr", "yearr", "yearstd", "sharpe", "maxdd"]
+
+    df.to_csv(f"{name}.csv")
     return df
 
 

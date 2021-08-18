@@ -1,6 +1,7 @@
 # Project ignore
 data/**
 img/**
+csv/**
 configs/**.yml
 
 # Byte-compiled / optimized / DLL files

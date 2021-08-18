@@ -159,7 +159,7 @@ def backtest(
         }
     )
     utils.draw_layered(contrast_rr, name=strategy_name)
-    evaluation = utils.get_evaluation(contrast_rr, 0.00)
+    evaluation = utils.get_evaluation(contrast_rr, 0.00, name=strategy_name)
     return evaluation.loc["strategy", return_indicator]
 
 

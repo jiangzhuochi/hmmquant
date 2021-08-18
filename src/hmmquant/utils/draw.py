@@ -1,6 +1,5 @@
 from functools import reduce, wraps
 from pathlib import Path
-from typing import Iterable, Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,7 +19,7 @@ def make_name(func):
             # 可迭代的
             name = reduce(lambda x, y: x / y, name, IMG_DIR)
         name.parent.mkdir(parents=True, exist_ok=True)
-        func(*args, name=str(name), **kwargs)
+        return func(*args, name=str(name), **kwargs)
 
     return inner
 
@@ -68,7 +67,7 @@ def draw_scatter(state, state_group, index_date, close):
     ax.set_xticks(pretty_x)
     ax.set_xticklabels(pretty_date, rotation=30)
     ax.scatter(
-        index_x, close[1 : len(index_date) + 1].values, color=color_list, s=7  # type: ignore
+        index_x, close[index_date[0] : index_date[-1]].values, color=color_list, s=7  # type: ignore
     )
     plt.show()
     fig.savefig(IMG_DIR / "scatter.png", dpi=300)

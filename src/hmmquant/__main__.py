@@ -1,11 +1,6 @@
-from typing import Union, overload
-
-import numpy as np
 import pandas as pd
-from scipy.stats import kstest
 
-from hmmquant import model, utils
-from hmmquant.backtest import backtest, peek, peek2
+from hmmquant.backtest import backtest, peek
 from hmmquant.data_proc import INDICATOR
 
 LOGRR = INDICATOR["LOGRR"]
@@ -21,8 +16,8 @@ if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
-        # all_data=RSI["2020-05-15":"2021-05-14"],
-        all_data=RSI,
+        # all_data=LOGRR,
+        all_data=CCI,
         # 训练集序列输入方法, rolling | expanding | None
         method=None,
         # 隐含状态数
@@ -35,8 +30,8 @@ if __name__ == "__main__":
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(16 * 20, 16 * 21, 16 * 10)
-    every_group_len_range = range(16 * 20, 16 * 21, 16 * 10)
+    train_min_len_range = range(16 * 10, 16 * 40, 16 * 500)
+    every_group_len_range = range(16 * 20, 16 * 40, 16 * 500)
     grid_search_name = (
         f"{config['all_data'].name}",  # type:ignore
         f"{config['state_num']}{train_min_len_range}{every_group_len_range}",  # type:ignore
@@ -53,7 +48,7 @@ if __name__ == "__main__":
                     every_group_len=every_group_len,
                 )
             )
-            # peek2(rr=LOGRR, close_param=close_se, **config)
+            # peek(**config)
             ret = backtest(**config)
 
             egl_dict[every_group_len] = ret
