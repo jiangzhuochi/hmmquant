@@ -14,6 +14,7 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
         covariance_type="full",
         init_params="t",
         params="tmc",
+        tol=1.0e-15,  # safe?
     )
 
     # 固定选择第一个状态以开始
@@ -21,7 +22,6 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
     # 给出初始值，锁
     model.startprob_ = np.append([1], np.zeros(state_num - 1))
 
-    # 能否提前锁定 means_？
     # every_group_num
     eg_num = len(training_set) // state_num
     _ts = sorted(training_set.flatten())
@@ -36,13 +36,17 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
     for g in all_group:
         means_.append(np.mean(g))
     means_ = np.array(means_).reshape(-1, 1)
-    model.means_ = means_
 
-    # 锁定 covars_？
     covars_ = []
     for g in all_group:
         covars_.append(np.var(g))
     covars_ = np.array(covars_).reshape(-1, 1, 1)
+
+    # print("训练前")
+    # print(f"{means_=}")
+    # print(f"{covars_=}")
+
+    model.means_ = means_
     model.covars_ = covars_
 
     model.fit(training_set)

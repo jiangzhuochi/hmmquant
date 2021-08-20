@@ -22,7 +22,9 @@ def peek(all_data, state_num, **_):
     )  # type:ignore
 
     m = model.run_model(train_np, state_num)
+    print("训练后")
     print(m.means_)
+    print(m.covars_)
     logprob, state = m.decode(train_np, algorithm="viterbi")
     start, *_, _, end = all_data.index
 

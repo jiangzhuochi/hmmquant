@@ -11,13 +11,12 @@ CCI = INDICATOR["CCI"]
 RSI = INDICATOR["RSI"]
 close_se = INDICATOR["close_se"]
 
-
 if __name__ == "__main__":
 
     config = dict(
         # 输入的观测序列，只支持一维
         # all_data=LOGRR,
-        all_data=CCI,
+        all_data=RSI,
         # 训练集序列输入方法, rolling | expanding | None
         method=None,
         # 隐含状态数

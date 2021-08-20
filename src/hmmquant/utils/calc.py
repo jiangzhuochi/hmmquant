@@ -10,6 +10,8 @@ import pandas as pd
 from pandas.core.frame import DataFrame
 from scipy import stats
 
+from .draw import save_with_root
+
 CSV_DIR = Path(".") / "csv"
 CSV_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -81,23 +83,7 @@ def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.Data
     return logrr
 
 
-# 可以改成带参数装饰器
-def make_name_with_CSV_DIR(func):
-    @wraps(func)
-    def inner(*args, **kwargs):
-        name = kwargs.pop("name")
-        if isinstance(name, str):
-            name = CSV_DIR / name
-        else:
-            # 可迭代的
-            name = reduce(lambda x, y: x / y, name, CSV_DIR)
-        name.parent.mkdir(parents=True, exist_ok=True)
-        return func(*args, name=str(name), **kwargs) 
-
-    return inner
-
-
-@make_name_with_CSV_DIR
+@save_with_root(CSV_DIR)
 def get_evaluation(
     rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float, name
 ) -> pd.DataFrame:
