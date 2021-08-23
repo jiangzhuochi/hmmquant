@@ -14,25 +14,26 @@ close_se = INDICATOR["close_se"]
 if __name__ == "__main__":
 
     config = dict(
-        # 输入的观测序列，只支持一维
-        # all_data=LOGRR,
-        all_data=RSI,
-        # 训练集序列输入方法, rolling | expanding | None
+        # all_data=INDICATOR[["RSI", "MACD"]].iloc[-1000:, :],
+        all_data=INDICATOR[["RSI",]].iloc[:, :],
+        # all_data=RSI,
+        # 训练集序列输入方法 只允许 None 后面删掉
         method=None,
         # 隐含状态数
         state_num=4,
-        # 对于 rolling, 则是训练集个数
-        # 对于 expanding, 则是最小的训练集个数
+        # 训练集个数
         train_min_len=240,
-        # 如果指定，表示每间隔 every_group_len 估计一次模型
+        # 间隔 every_group_len 估计一次模型
         every_group_len=320,
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(16 * 10, 16 * 40, 16 * 500)
+    train_min_len_range = range(16 * 20, 16 * 40, 16 * 500)
     every_group_len_range = range(16 * 20, 16 * 40, 16 * 500)
     grid_search_name = (
-        f"{config['all_data'].name}",  # type:ignore
+        f"{'-'.join(config['all_data'].columns)}"
+        if isinstance(config["all_data"], pd.DataFrame)
+        else f"{config['all_data'].name}",  # type:ignore
         f"{config['state_num']}{train_min_len_range}{every_group_len_range}",  # type:ignore
     )
     # train_min_len

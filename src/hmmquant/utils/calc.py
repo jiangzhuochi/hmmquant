@@ -20,20 +20,30 @@ if CPUs is None:
     CPUs = 4
 
 
-def normalization(se: pd.Series, plus=2) -> pd.Series:
+def normalization(
+    raw_data: Union[pd.Series, pd.DataFrame], plus=2
+) -> pd.DataFrame:
 
-    # z_score标准化
-    mean, std = se.describe()[["mean", "std"]]
-    z_score_scaling = (se - mean) / std
+    def _norm(se: pd.Series):
+        # z_score标准化
+        mean, std = se.describe()[["mean", "std"]]
+        z_score_scaling = (se - mean) / std
 
-    # minmax标准化
-    ma, mi = z_score_scaling.describe()[["max", "min"]]
-    min_max_scaling = (z_score_scaling - mi) / (ma - mi) + plus
+        # minmax标准化
+        ma, mi = z_score_scaling.describe()[["max", "min"]]
+        min_max_scaling = (z_score_scaling - mi) / (ma - mi) + plus
 
-    # 使用boxcox
-    boxcoxed_data, _ = stats.boxcox(min_max_scaling)  # type: ignore
+        # 使用boxcox
+        boxcoxed_data, _ = stats.boxcox(min_max_scaling)  # type: ignore
+        return pd.Series(boxcoxed_data, index=se.index)
 
-    return pd.Series(boxcoxed_data, index=se.index)
+    # print(raw_data)
+    raw_data = pd.DataFrame(raw_data)
+    # print(raw_data)
+    if isinstance(raw_data, pd.Series):
+        return pd.DataFrame(_norm(raw_data))
+    else:
+        return raw_data.apply(_norm)
 
 
 def get_state_rr(rr_seq: pd.Series, state_seq: np.ndarray, target_s) -> pd.Series:

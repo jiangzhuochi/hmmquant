@@ -17,30 +17,38 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
         tol=1.0e-15,  # safe?
     )
 
+    # print(training_set)
+
     # 固定选择第一个状态以开始
     # 由于估计模型之前所有状态都是等价的，因此选择哪个状态开始均可
     # 给出初始值，锁
     model.startprob_ = np.append([1], np.zeros(state_num - 1))
 
+    # 按照第一列排序
+    _ts = training_set[np.argsort(training_set[:, 0])]
+
     # every_group_num
     eg_num = len(training_set) // state_num
-    _ts = sorted(training_set.flatten())
     all_group = []
     for g in range(state_num):
         if g == state_num - 1:
             all_group.append(_ts[eg_num * g :])
         else:
             all_group.append(_ts[eg_num * g : eg_num * (g + 1)])
-
+    # print(all_group)
     means_ = []
     for g in all_group:
-        means_.append(np.mean(g))
-    means_ = np.array(means_).reshape(-1, 1)
-
+        means_.append(np.mean(g, axis=0))
+    means_ = np.array(means_)
+    # print(means_)
     covars_ = []
     for g in all_group:
-        covars_.append(np.var(g))
-    covars_ = np.array(covars_).reshape(-1, 1, 1)
+        covars_.append(np.cov(g, rowvar=False))
+    covars_ = np.array(covars_)
+    if len(covars_.shape) == 1:
+        covars_ = covars_.reshape(-1, 1, 1)
+    # print(covars_)
+    
 
     # print("训练前")
     # print(f"{means_=}")

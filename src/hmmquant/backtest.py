@@ -1,9 +1,10 @@
 import collections
 from functools import partial
 from multiprocessing import Pool
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from hmmlearn import hmm
 
@@ -17,9 +18,10 @@ close_se = INDICATOR["close_se"]
 
 def peek(all_data, state_num, **_):
     """看一下分层情况"""
-    train_np = utils.normalization(all_data, plus=2).values.reshape(  # type:ignore
-        -1, 1
-    )  # type:ignore
+
+    train_np = utils.normalization(all_data, plus=2).values
+    # print("+++++++++++++++++")
+    # print(train_np)
 
     m = model.run_model(train_np, state_num)
     print("训练后")
@@ -41,7 +43,9 @@ def peek(all_data, state_num, **_):
     raise
 
 
-def calc_next_rr(_d: pd.Series, *, state_num: int, m: Optional[hmm.GaussianHMM]):
+def calc_next_rr(
+    _d: Union[pd.DataFrame, pd.Series], *, state_num: int, m: Optional[hmm.GaussianHMM]
+):
     """计算模型并回测的 dirty work
     如果调用方提供了模型 m，则本函数内不估计
 
@@ -52,9 +56,8 @@ def calc_next_rr(_d: pd.Series, *, state_num: int, m: Optional[hmm.GaussianHMM])
     print(end)
     # 切片，做训练集
     train = _d[:-1]
-    train_np = utils.normalization(train, plus=2).values.reshape(  # type:ignore
-        -1, 1
-    )
+    train_np = utils.normalization(train, plus=2).values # type:ignore
+
     if m is None:
         m = model.run_model(train_np, state_num)
     # 这里的m是之前用最初的训练集估计的模型，用来解码序列
@@ -79,7 +82,7 @@ def _backtest_inner(
     end,
     num,
     *,
-    data,
+    data: pd.DataFrame,
     method: Optional[Literal["expanding", "rolling"]],
     state_num: int,
     is_estimate_once: bool,
@@ -92,9 +95,7 @@ def _backtest_inner(
     if is_estimate_once:
         # 注意 num 的数量是 训练集个数 + 1 下面要减去
         train = data[start : start + num - 1]
-        train_np = utils.normalization(train, plus=2).values.reshape(  # type:ignore
-            -1, 1
-        )
+        train_np = utils.normalization(train, plus=2).values # type:ignore
         m = model.run_model(train_np, state_num)
         # 估计一次时，确保 method 未给出
         # 设置 method = "expanding" 保证单个模型回测起点相同
@@ -103,11 +104,19 @@ def _backtest_inner(
     else:
         assert method is not None
 
-    return (
-        getattr(data[start:end], method)(num)
-        .apply(partial(calc_next_rr, state_num=state_num, m=m))
-        .dropna()
-    )
+    # local_data 为该组全部数据
+    local_data = data[start:end]
+    # num 是训练集长度 + 1
+    # len(local_data) 是整个组的长度
+    ret = []
+    for current in range(num, len(local_data) + 1):
+        # 例如 num=161 则送进去 0 (含) 至 160 (含)
+        # 用 0 (含) 至 159 (含) 解码 160 是预测
+        r = calc_next_rr(local_data[:current], state_num=state_num, m=m)  # type: ignore
+        ret.append(r)
+
+    # 例如 num=161 则从 160 位置开始是回测的结果
+    return pd.Series(ret, index=local_data[num - 1 :].index)  # type: ignore
 
 
 def backtest(
@@ -124,7 +133,9 @@ def backtest(
     然后设置 is_estimate_once 为 True"""
 
     strategy_name = (
-        str(all_data.name),
+        f"{'-'.join(all_data.columns)}"
+        if isinstance(all_data, pd.DataFrame)
+        else f"{all_data.name}",  # type:ignore
         str(method),
         f"{state_num},{train_min_len},{every_group_len}",
     )
@@ -164,26 +175,3 @@ def backtest(
     evaluation = utils.get_evaluation(contrast_rr, 0.00, name=strategy_name)
     return evaluation.loc["strategy", return_indicator]
 
-
-def peek2(all_data, state_num, rr, close_param, **_):
-    """用别的数据，看一下分层情况"""
-    train_np = utils.normalization(all_data, plus=2).values.reshape(  # type:ignore
-        -1, 1
-    )  # type:ignore
-
-    m = model.run_model(train_np, state_num)
-    print(m.means_)
-    logprob, state = m.decode(train_np, algorithm="viterbi")
-    start, *_, _, end = all_data.index
-
-    r = utils.get_all_state_rr(rr[start:end], state)
-    print(r)
-    state_group = model.distinguish_state2(r)
-
-    utils.draw_layered(r, name="temp")
-    plt.close()
-    print(collections.Counter(state))
-    print(state_group)
-    utils.draw_scatter(state, state_group, index_date=all_data.index, close=close_param)
-    plt.close()
-    raise

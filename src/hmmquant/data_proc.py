@@ -10,10 +10,11 @@ DATA_DIR = Path(".") / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def update_data() -> pd.DataFrame:
+def update_data(update=True) -> pd.DataFrame:
 
     name = datetime.today().strftime(r"%Y-%m-%d") + ".pkl"
-    if (DATA_DIR / name).is_file():
+    # 只有文件存在且不更新时才直接返回
+    if (DATA_DIR / name).is_file() and not update:
         return pd.read_pickle(DATA_DIR / name)
 
     data = pd.read_csv("./data/quarter.csv", index_col=0, parse_dates=True)
@@ -46,4 +47,4 @@ def update_data() -> pd.DataFrame:
     return df
 
 
-INDICATOR = update_data()
+INDICATOR = update_data(update=False)
