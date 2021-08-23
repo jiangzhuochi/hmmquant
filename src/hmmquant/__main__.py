@@ -1,5 +1,6 @@
 import pandas as pd
 
+from hmmquant import utils
 from hmmquant.backtest import backtest, peek
 from hmmquant.data_proc import INDICATOR
 
@@ -15,7 +16,7 @@ if __name__ == "__main__":
 
     config = dict(
         # all_data=INDICATOR[["RSI", "MACD"]].iloc[-1000:, :],
-        all_data=INDICATOR[["RSI",]].iloc[:, :],
+        all_data=INDICATOR[["MACD", "LOGRR"]].iloc[:, :],
         # all_data=RSI,
         # 训练集序列输入方法 只允许 None 后面删掉
         method=None,
@@ -28,8 +29,8 @@ if __name__ == "__main__":
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(16 * 20, 16 * 40, 16 * 500)
-    every_group_len_range = range(16 * 20, 16 * 40, 16 * 500)
+    train_min_len_range = range(17 * 10, 17 * 25, 17 * 5)
+    every_group_len_range = range(17 * 20, 17 * 35, 17 * 5)
     grid_search_name = (
         f"{'-'.join(config['all_data'].columns)}"
         if isinstance(config["all_data"], pd.DataFrame)
@@ -57,4 +58,4 @@ if __name__ == "__main__":
     backtest_df = pd.DataFrame(tml_dict)
     backtest_df.index.name = "every_group_len"
     backtest_df.columns.name = "train_min_len"
-    # utils.draw_heatmap(backtest_df, name=grid_search_name)
+    utils.draw_heatmap(backtest_df, name=grid_search_name)
