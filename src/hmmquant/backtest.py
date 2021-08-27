@@ -56,7 +56,7 @@ def calc_next_rr(
     print(end)
     # 切片，做训练集
     train = _d[:-1]
-    train_np = utils.normalization(train, plus=2).values # type:ignore
+    train_np = utils.normalization(train, plus=2).values  # type:ignore
 
     if m is None:
         m = model.run_model(train_np, state_num)
@@ -83,26 +83,16 @@ def _backtest_inner(
     num,
     *,
     data: pd.DataFrame,
-    method: Optional[Literal["expanding", "rolling"]],
     state_num: int,
-    is_estimate_once: bool,
 ):
     """根据 is_estimate_once 的真假做出不同的行为
     True -> 在本函数估计一次
     False -> 在 calc_next_rr 里每次都估计"""
 
-    m = None
-    if is_estimate_once:
-        # 注意 num 的数量是 训练集个数 + 1 下面要减去
-        train = data[start : start + num - 1]
-        train_np = utils.normalization(train, plus=2).values # type:ignore
-        m = model.run_model(train_np, state_num)
-        # 估计一次时，确保 method 未给出
-        # 设置 method = "expanding" 保证单个模型回测起点相同
-        assert method is None
-        method = "expanding"
-    else:
-        assert method is not None
+    # 注意 num 的数量是 训练集个数 + 1 下面要减去
+    train = data[start : start + num - 1]
+    train_np = utils.normalization(train, plus=2).values  # type:ignore
+    m = model.run_model(train_np, state_num)
 
     # local_data 为该组全部数据
     local_data = data[start:end]
@@ -121,30 +111,20 @@ def _backtest_inner(
 
 def backtest(
     *,
-    all_data,
-    method,
-    state_num,
-    train_min_len,
-    every_group_len: Optional[int] = None,
+    all_data: pd.DataFrame,
+    state_num: int,
+    train_min_len: int,
+    every_group_len: int,
     return_indicator: Literal["yearr", "sharpe", "maxdd"] = "yearr",
 ):
-    """如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
-    此时 method 必须为 None, 见 calc_backtest_params2 和 _backtest_inner
-    然后设置 is_estimate_once 为 True"""
+    """every_group_len 表明间隔 every_group_len 估计一次模型"""
 
     strategy_name = (
         f"{'-'.join(all_data.columns)}"
         if isinstance(all_data, pd.DataFrame)
         else f"{all_data.name}",  # type:ignore
-        str(method),
         f"{state_num},{train_min_len},{every_group_len}",
     )
-
-    is_estimate_once = False
-    if every_group_len is not None:
-        assert isinstance(every_group_len, int)
-        assert method is None
-        is_estimate_once = True
 
     with Pool(processes=CPUs) as p:
         rr = pd.concat(
@@ -152,14 +132,11 @@ def backtest(
                 partial(
                     _backtest_inner,
                     data=all_data,
-                    method=method,
                     state_num=state_num,
-                    is_estimate_once=is_estimate_once,
                 ),
                 utils.calc_backtest_params2(
                     data_len=len(all_data),
                     train_min_len=train_min_len,
-                    method=method,
                     every_group_len=every_group_len,
                 ),
             )
@@ -174,4 +151,3 @@ def backtest(
     utils.draw_layered(contrast_rr, name=strategy_name)
     evaluation = utils.get_evaluation(contrast_rr, 0.00, name=strategy_name)
     return evaluation.loc["strategy", return_indicator]
-

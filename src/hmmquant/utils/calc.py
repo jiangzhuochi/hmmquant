@@ -20,10 +20,7 @@ if CPUs is None:
     CPUs = 4
 
 
-def normalization(
-    raw_data: Union[pd.Series, pd.DataFrame], plus=2
-) -> pd.DataFrame:
-
+def normalization(raw_data: Union[pd.Series, pd.DataFrame], plus=2) -> pd.DataFrame:
     def _norm(se: pd.Series):
         # z_score标准化
         mean, std = se.describe()[["mean", "std"]]
@@ -135,34 +132,20 @@ def get_evaluation(
 def calc_backtest_params2(
     data_len: int,
     train_min_len: int,
-    method: Optional[Literal["expanding", "rolling"]],
-    every_group_len: Optional[int],
+    every_group_len: int,
 ):
     """计算多进程回测需要的参数
-    如果指定了 every_group_len 则表明间隔 every_group_len 估计一次模型
-    且 method 必须为 None"""
+    every_group_len 表明间隔 every_group_len 估计一次模型"""
 
     assert CPUs is not None
     if data_len <= train_min_len:
         raise Exception("训练数据不足")
-
-    if every_group_len is None:
-        every_group_len = math.ceil((data_len - train_min_len) / (5 * CPUs))
-    else:
-        assert method is None
 
     ends = [
         *range(
             train_min_len + every_group_len, data_len + every_group_len, every_group_len
         )
     ]
-    if method == "expanding":
-        nums = [train_min_len + 1, *map(lambda i: i + 1, ends[:-1])]
-        starts = [0 for _ in range(len(ends))]
-
-    # method is None 时，采用 rolling 的参数
-    # starts 是不断向后推进的
-    elif method == "rolling" or method is None:
-        nums = [train_min_len + 1 for _ in range(len(ends))]
-        starts = [0, *map(lambda i: i - train_min_len, ends[:-1])]
+    nums = [train_min_len + 1 for _ in range(len(ends))]
+    starts = [0, *map(lambda i: i - train_min_len, ends[:-1])]
     return list(zip(starts, ends, nums))

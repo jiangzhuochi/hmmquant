@@ -16,10 +16,8 @@ if __name__ == "__main__":
 
     config = dict(
         # all_data=INDICATOR[["RSI", "MACD"]].iloc[-1000:, :],
-        all_data=INDICATOR[["MACD", "LOGRR"]].iloc[:, :],
+        all_data=INDICATOR[["MACD", "LOGRR"]].iloc[-500:, :],
         # all_data=RSI,
-        # 训练集序列输入方法 只允许 None 后面删掉
-        method=None,
         # 隐含状态数
         state_num=4,
         # 训练集个数
@@ -29,8 +27,8 @@ if __name__ == "__main__":
         return_indicator="yearr",
     )
 
-    train_min_len_range = range(17 * 10, 17 * 25, 17 * 5)
-    every_group_len_range = range(17 * 20, 17 * 35, 17 * 5)
+    train_min_len_range = range(17 * 10, 17 * 25, 17 * 50)
+    every_group_len_range = range(17 * 20, 17 * 35, 17 * 50)
     grid_search_name = (
         f"{'-'.join(config['all_data'].columns)}"
         if isinstance(config["all_data"], pd.DataFrame)
@@ -50,7 +48,7 @@ if __name__ == "__main__":
                 )
             )
             # peek(**config)
-            ret = backtest(**config)
+            ret = backtest(**config)  # type:ignore
 
             egl_dict[every_group_len] = ret
         tml_dict[train_min_len] = egl_dict
