@@ -91,6 +91,11 @@ def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.Data
 
 
 @save_with_root(CSV_DIR)
+def save_sig(se,name):
+    se.to_csv(f"{name}.csv")
+
+
+@save_with_root(CSV_DIR)
 def get_evaluation(
     rr: Union[pd.Series, pd.DataFrame], risk_free_rr: float, name
 ) -> pd.DataFrame:

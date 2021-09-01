@@ -10,7 +10,7 @@ from hmmlearn import hmm
 
 import hmmquant
 
-"""本文件输入 15min 数据, 输出信号
+"""本文件输入不断增长的 15min 数据表, 输出信号
 前置条件: 15min 数据, 至少包括 OHLC"""
 
 ################################
@@ -155,4 +155,5 @@ elif last_state in state_group.fall_state:
     sig = -1
 else:
     sig = 0
+    
 print(sig)

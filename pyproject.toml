@@ -8,12 +8,13 @@ authors = ["jiangzhuochi <1053067021@qq.com>"]
 python = ">=3.8, <3.10"
 numpy = "^1.19.0"
 pandas = "^1.1.1"
-matplotlib = "^3.2.2"
+matplotlib = "3.2.2"
 hmmlearn = "^0.2.6"
 scipy = "^1.6.1"
 # TA-Lib = "^0.4.1" 需要手动安装
 seaborn = "^0.11.2"
 ipykernel = "^6.2.0"
+backtrader = "^1.9.76"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

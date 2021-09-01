@@ -25,6 +25,7 @@ if __name__ == "__main__":
         # 间隔 every_group_len 估计一次模型
         every_group_len=320,
         return_indicator="yearr",
+        output="sig"
     )
 
     train_min_len_range = range(17 * 10, 17 * 35, 17 * 50)

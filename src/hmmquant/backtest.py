@@ -70,11 +70,12 @@ def calc_next_rr(
     state_group = model.distinguish_state(r, 1, 1)
 
     if last_state in state_group.rise_state:
-        return LOGRR[end]
+        # 记录收益率，以及信号
+        return LOGRR[end], 1
     elif last_state in state_group.fall_state:
-        return -LOGRR[end]
+        return -LOGRR[end], -1
     else:
-        return 0
+        return 0, 0
 
 
 def _backtest_inner(
@@ -84,6 +85,7 @@ def _backtest_inner(
     *,
     data: pd.DataFrame,
     state_num: int,
+    output: Literal["rr", "sig"] = "rr",
 ):
     """根据 is_estimate_once 的真假做出不同的行为
     True -> 在本函数估计一次
@@ -99,12 +101,18 @@ def _backtest_inner(
     # num 是训练集长度 + 1
     # len(local_data) 是整个组的长度
     ret = []
+    signal = []
     for current in range(num, len(local_data) + 1):
         # 例如 num=161 则送进去 0 (含) 至 160 (含)
         # 用 0 (含) 至 159 (含) 解码 160 是预测
         r = calc_next_rr(local_data[:current], state_num=state_num, m=m)  # type: ignore
-        ret.append(r)
+        ret.append(r[0])
+        signal.append(r[1])
 
+    if output == "sig":
+        # 如果输出信号
+        # 例如 num=161 则从 159 位置开始是信号
+        return pd.Series(signal, index=local_data[num - 2 : -1].index)  # type: ignore
     # 例如 num=161 则从 160 位置开始是回测的结果
     return pd.Series(ret, index=local_data[num - 1 :].index)  # type: ignore
 
@@ -116,23 +124,22 @@ def backtest(
     train_min_len: int,
     every_group_len: int,
     return_indicator: Literal["yearr", "sharpe", "maxdd"] = "yearr",
+    output: Literal["rr", "sig"] = "rr",
 ):
     """every_group_len 表明间隔 every_group_len 估计一次模型"""
 
-    strategy_name = (
+    strategy_name = [
         f"{'-'.join(all_data.columns)}"
         if isinstance(all_data, pd.DataFrame)
         else f"{all_data.name}",  # type:ignore
         f"{state_num},{train_min_len},{every_group_len}",
-    )
+    ]
 
     with Pool(processes=CPUs) as p:
         rr = pd.concat(
             p.starmap(
                 partial(
-                    _backtest_inner,
-                    data=all_data,
-                    state_num=state_num,
+                    _backtest_inner, data=all_data, state_num=state_num, output=output
                 ),
                 utils.calc_backtest_params2(
                     data_len=len(all_data),
@@ -141,6 +148,10 @@ def backtest(
                 ),
             )
         )
+    if output == "sig":
+        strategy_name[-1] = "sig," + strategy_name[-1]
+        return utils.save_sig(rr, name=strategy_name)
+
     contrast_rr = pd.DataFrame(
         {
             "strategy": rr,

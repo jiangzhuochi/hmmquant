@@ -21,7 +21,9 @@ def save_with_root(root: Path):
                 name = reduce(lambda x, y: x / y, name, root)
             name.parent.mkdir(parents=True, exist_ok=True)
             return func(*args, name=str(name), **kwargs)
+
         return inner
+
     return make_name
 
 
@@ -38,8 +40,8 @@ def draw_layered(rr_df: pd.DataFrame, name):
     pretty_date = index_date[:: len(index_date) // 20]
     ax.set_xticks(pretty_x)
     ax.set_xticklabels(pretty_date, rotation=30)
-    ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
-    ax.legend()
+    lines = ax.plot(index_x, rr_df.cumsum().values, label=rr_df.columns)
+    ax.legend(lines, rr_df.columns)
     print(f"{name}.png")
     fig.savefig(f"{name}.png", dpi=160)
 
