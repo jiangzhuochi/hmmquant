@@ -1,14 +1,53 @@
+import json
 import pickle
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 import talib
 from hmmlearn import hmm
 
 import hmmquant
+
+DATA_DIR = Path(".") / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+url = (
+    "https://stock2.finance.sina.com.cn/futures/api/jsonp.php"
+    "?symbol=T2112&type=15=/InnerFuturesNewService.getFewMinLine"
+)
+res = requests.get(url)
+df = (
+    pd.DataFrame(json.loads(re.findall(r"\[.*?\]", res.text)[0]))
+    .rename(
+        columns={
+            "d": "datetime",
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+            "v": "volume",
+            "p": "position",
+        }
+    )
+    .set_index("datetime")
+    .rename(index=lambda idx: pd.to_datetime(idx))
+    .astype(
+        {
+            **{col_name: "float64" for col_name in ["open", "high", "low", "close"]},
+            **{col_name: "int64" for col_name in ["volume", "position"]},
+        }
+    )
+)
+
+# 如果现在的时间在 df 最后一行的时间之前
+# 就抛弃最后一行
+if (datetime.now() - df.index[-1]).total_seconds() < 0:
+    df = df.head(-1)
 
 """本文件输入不断增长的 15min 数据表, 输出信号
 前置条件: 15min 数据, 至少包括 OHLC"""
@@ -18,17 +57,17 @@ import hmmquant
 state_num = 4
 train_min_len = 170
 every_group_len = 340
-
+indicator_list = ["RSI"]
 
 ################################
 # step 1 读取数据计算指标
-DATA_DIR = Path(".") / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-quarter_data = pd.read_csv(DATA_DIR / "quarter.csv", index_col=0, parse_dates=True)
-close_se = quarter_data["last"]
+# quarter_data = pd.read_csv(DATA_DIR / "quarter.csv", index_col=0, parse_dates=True)
+quarter_data = df
+close_se = quarter_data["close"]
 high_se = quarter_data["high"]
 low_se = quarter_data["low"]
+# print(close_se)
 LOGRR: pd.Series = hmmquant.utils.get_logrr(close_se)
 RSI: pd.Series = talib.RSI(close_se, timeperiod=14)  # type:ignore
 df = pd.DataFrame(
@@ -98,7 +137,7 @@ def create_model_with_time():
     start, *_ = needed_df.index
 
     train = needed_df
-    train_np = utils.normalization(train, plus=2).values  # type:ignore
+    train_np = hmmquant.utils.normalization(train, plus=2).values  # type:ignore
     model = run_model(train_np, state_num)
 
     # 测试用
@@ -131,16 +170,16 @@ else:
     model_with_time = create_model_with_time()
     model = model_with_time._model
 
-print(model_with_time)
+# print(model_with_time)
 
 
 ################################
 # step 3 信号
 
 # 观测指标的 df
-ob_df = df[model_with_time._time :]
+ob_df = df[indicator_list].loc[model_with_time._time :]
 start, *_, end = ob_df.index
-print(ob_df)
+# print(ob_df)
 ob_np = hmmquant.utils.normalization(ob_df, plus=2).values  # type:ignore
 _, state = model.decode(ob_np, algorithm="viterbi")
 # 只关心当前最后一个隐藏状态，我们用它来预测下一个状态是属于涨组还是跌组
@@ -155,5 +194,5 @@ elif last_state in state_group.fall_state:
     sig = -1
 else:
     sig = 0
-    
-print(sig)
+
+print(df.index[-1], sig, sep=",")

@@ -15,6 +15,7 @@ scipy = "^1.6.1"
 seaborn = "^0.11.2"
 ipykernel = "^6.2.0"
 backtrader = "^1.9.76"
+requests = "^2.26.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -23,3 +24,6 @@ black = { version = "^21.7b0", allow-prereleases = true }
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+ignore = ["my_script"]

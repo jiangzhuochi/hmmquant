@@ -1,4 +1,5 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import datetime
 import os.path
@@ -12,8 +13,6 @@ sig_df = pd.read_csv(
     "./csv/RSI/sig,4,170,340.csv", index_col=0, parse_dates=["quarter_time"]
 )
 
-# print(sig_df.index)
-# print(sig_df.loc['2015-08-03 11:15'][0])
 # backtrader 简直是 linter 杀手233
 class MyHLOC(btfeeds.GenericCSVData):  # type: ignore
 
@@ -91,15 +90,12 @@ class TestStrategy(bt.Strategy):
             self.buy()
         elif c_sig == -1:
             self.sell()
-        # Simply log the closing price of the series from the reference
         self.log("Close, %.4f" % self.dataclose[0])
 
 
 if __name__ == "__main__":
 
-    # Create a cerebro entity
     cerebro = bt.Cerebro()
-    # analyzer
 
     cerebro.addstrategy(TestStrategy)
 
