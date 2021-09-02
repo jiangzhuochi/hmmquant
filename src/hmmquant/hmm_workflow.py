@@ -165,6 +165,8 @@ def get_model(only_indicator_df: pd.DataFrame):
         if len(only_indicator_df.loc[model_with_time._time :]) > every_group_len:
             model_with_time = create_model_with_time(only_indicator_df)
             model = model_with_time._model
+            print('估计')
+            print(model_with_time)
         # 模型仍在有效期
         else:
             model: hmm.GaussianHMM = model_with_time._model
@@ -214,9 +216,12 @@ train_min_len = 170
 every_group_len = 340
 indicator_list = ["RSI"]
 
-all_data = calc_indicator(get_data())
-only_indicator_df = all_data[indicator_list]
-model, model_time = get_model(only_indicator_df)
-# print(model, model_time)
-sig = emit_signal(model, model_time, all_data)
-print(all_data.index[-1], sig, sep=",")
+df = calc_indicator(get_data())
+for c in range(170, len(df) + 1):
+    all_data = df.iloc[:c, :]
+
+    only_indicator_df = all_data[indicator_list]
+    model, model_time = get_model(only_indicator_df)
+    # print(model, model_time)
+    sig = emit_signal(model, model_time, all_data)
+    print(all_data.index[-1], sig, sep=",")
