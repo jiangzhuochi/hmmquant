@@ -209,7 +209,7 @@ def emit_signal(
     "cron",
     id="my_job_id",
     day_of_week="mon-fri",
-    hour="9-15",
+    hour="9-11,13-15",
     minute="0,15,30,45",
     second="1",
 )
@@ -217,8 +217,11 @@ def job_function():
 
     now = datetime.now()
 
-    if (now.hour == 9 and now.minute in [0, 15, 30]) or (
-        now.hour == 15 and now.minute in [30, 45]
+    if (
+        (now.hour == 9 and now.minute in [0, 15, 30])
+        or (now.hour == 11 and now.minute in [45])
+        or (now.hour == 13 and now.minute in [0])
+        or (now.hour == 15 and now.minute in [30, 45])
     ):
         return
 
