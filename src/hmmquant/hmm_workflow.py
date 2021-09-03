@@ -9,12 +9,14 @@ import numpy as np
 import pandas as pd
 import requests
 import talib
+from apscheduler.schedulers.blocking import BlockingScheduler
 from hmmlearn import hmm
 
 import hmmquant
 
 DATA_DIR = Path(".") / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+sched = BlockingScheduler()
 
 
 def get_data() -> pd.DataFrame:
@@ -53,12 +55,7 @@ def get_data() -> pd.DataFrame:
     # 就抛弃最后一行
     if (datetime.now() - df.index[-1]).total_seconds() < 0:
         df = df.head(-1)
-
     return df
-
-
-"""本文件输入不断增长的 15min 数据表, 输出信号
-前置条件: 15min 数据, 至少包括 OHLC"""
 
 
 ################################
@@ -165,8 +162,8 @@ def get_model(only_indicator_df: pd.DataFrame):
         if len(only_indicator_df.loc[model_with_time._time :]) > every_group_len:
             model_with_time = create_model_with_time(only_indicator_df)
             model = model_with_time._model
-            print('估计')
-            print(model_with_time)
+            # print("估计")
+            # print(model_with_time)
         # 模型仍在有效期
         else:
             model: hmm.GaussianHMM = model_with_time._model
@@ -178,13 +175,8 @@ def get_model(only_indicator_df: pd.DataFrame):
     return model, model_with_time._time
 
 
-# print(model_with_time)
-
-
 ################################
 # step 3 信号
-
-
 def emit_signal(
     model: hmm.GaussianHMM, model_estimation_time: str, all_data: pd.DataFrame
 ):
@@ -211,17 +203,37 @@ def emit_signal(
 
 ################################
 # step 0 参数
-state_num = 4
-train_min_len = 170
-every_group_len = 340
-indicator_list = ["RSI"]
 
-df = calc_indicator(get_data())
-for c in range(170, len(df) + 1):
-    all_data = df.iloc[:c, :]
+
+@sched.scheduled_job(
+    "cron",
+    id="my_job_id",
+    day_of_week="mon-fri",
+    hour="9-15",
+    minute="0,15,30,45",
+    second="1",
+)
+def job_function():
+
+    now = datetime.now()
+
+    if (now.hour == 9 and now.minute in [0, 15, 30]) or (
+        now.hour == 15 and now.minute in [30, 45]
+    ):
+        return
+
+    all_data = calc_indicator(get_data())
 
     only_indicator_df = all_data[indicator_list]
     model, model_time = get_model(only_indicator_df)
     # print(model, model_time)
     sig = emit_signal(model, model_time, all_data)
     print(all_data.index[-1], sig, sep=",")
+
+
+state_num = 4
+train_min_len = 170
+every_group_len = 340
+indicator_list = ["RSI"]
+
+sched.start()

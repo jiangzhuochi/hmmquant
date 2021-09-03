@@ -1,5 +1,6 @@
 # Project ignore
 data/**
+!data/model.pkl
 img/**
 csv/**
 configs/**.yml
