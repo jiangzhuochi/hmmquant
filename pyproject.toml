@@ -17,6 +17,7 @@ ipykernel = "^6.2.0"
 backtrader = "^1.9.76"
 requests = "^2.26.0"
 APScheduler = "^3.7.0"
+loguru = "^0.5.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

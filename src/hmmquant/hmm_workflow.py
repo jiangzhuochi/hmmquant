@@ -228,7 +228,30 @@ def job_function():
     model, model_time = get_model(only_indicator_df)
     # print(model, model_time)
     sig = emit_signal(model, model_time, all_data)
-    print(all_data.index[-1], sig, sep=",")
+    try:
+        with open(DATA_DIR / "last_sig.txt", "r", encoding="utf8") as f:
+            try:
+                last_sig = int(f.read())
+            except ValueError:
+                last_sig = 0
+    except FileNotFoundError:
+        last_sig = 0
+    with open(DATA_DIR / "last_sig.txt", "w", encoding="utf8") as f:
+        f.write(str(sig))
+    hmmquant.utils.stdout_logger.info(f"{all_data.index[-1]},{sig}")
+    hmmquant.utils.signal_logger.info(f"{all_data.index[-1]},{sig}")
+
+    # 纯多在上个时段收益
+    long_rr = float(all_data["LOGRR"].to_list()[-1])
+    # 策略在上个时段的收益
+    if last_sig == 0:
+        strategy_rr = 0
+    elif last_sig == 1:
+        strategy_rr = long_rr
+    else:
+        strategy_rr = -long_rr
+
+    hmmquant.utils.rr_logger.info(f"{all_data.index[-1]},{strategy_rr},{long_rr}")
 
 
 state_num = 4
@@ -236,4 +259,6 @@ train_min_len = 170
 every_group_len = 340
 indicator_list = ["RSI"]
 
+
 sched.start()
+# job_function()
