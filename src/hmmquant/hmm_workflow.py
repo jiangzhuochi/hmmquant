@@ -1,9 +1,17 @@
 import json
 import pickle
 import re
+import sys
+from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Union
+
+from loguru import logger as _logger
+
+if TYPE_CHECKING:
+    from loguru import Logger
 
 import numpy as np
 import pandas as pd
@@ -12,7 +20,102 @@ import talib
 from apscheduler.schedulers.blocking import BlockingScheduler
 from hmmlearn import hmm
 
-import hmmquant
+StateGroup = namedtuple("StateGroup", ["rise_state", "fall_state", "shock_state"])
+
+
+def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
+    logrr = np.log(close).diff()[1:]  # type: ignore
+    return logrr
+
+
+def get_state_rr(rr_seq: pd.Series, state_seq: np.ndarray, target_s) -> pd.Series:
+    """得到某个状态的收益"""
+    rrlist = []
+    for r, s in zip(rr_seq.values, state_seq):
+        if s == target_s:
+            rrlist.append(r)
+        else:
+            rrlist.append(0)
+    return pd.Series(rrlist, index=rr_seq.index)
+
+
+def get_all_state_rr(rr_seq: pd.Series, state_seq: np.ndarray) -> pd.DataFrame:
+    """得到所有状态的收益"""
+    _d = {}
+    all_state = sorted(list(set(state_seq)))
+    for s in all_state:
+        _d[s] = get_state_rr(rr_seq, state_seq, s)
+    return pd.DataFrame(_d)
+
+
+def distinguish_state(r: pd.DataFrame, rise_num: int, fall_num: int):
+    flag = True
+    while rise_num + fall_num > len(r.columns):
+        if flag:
+            fall_num -= 1
+            flag = False
+        else:
+            rise_num -= 1
+            flag = True
+    rise_state = set(r.sum().nlargest(rise_num, keep="all").index)
+    fall_state = set(r.sum().nsmallest(fall_num, keep="all").index)
+    shock_state = set(r.columns) - rise_state - fall_state
+    state_group = StateGroup(list(rise_state), list(fall_state), list(shock_state))
+    return state_group
+
+
+########## log
+LOG_PATH = Path(".") / "logs"
+
+LOG_PATH.mkdir(parents=True, exist_ok=True)
+LOG_FORMAT = (
+    "<level><v>{level:<8}</v>"
+    " [{time:YYYY-MM-DD} {time:HH:mm:ss.SSS} <d>{module}:{name}:{line}</d>]</level>"
+    " {message}"
+)
+LOG_LEVEL = "TRACE"
+
+
+def make_filter(name):
+    def filter(record):
+        return record["extra"].get("name") == name
+
+    return filter
+
+
+logger: "Logger" = _logger.opt(colors=True)
+logger.remove()
+
+
+logger.add(
+    LOG_PATH / "signal.log",
+    format="{message}",
+    level=LOG_LEVEL,
+    encoding="utf-8",
+    filter=make_filter("signal"),
+)
+logger.add(
+    LOG_PATH / "rr.log",
+    format="{message}",
+    level=LOG_LEVEL,
+    encoding="utf-8",
+    filter=make_filter("rr"),
+)
+logger.add(
+    sys.stdout,
+    format="{message}",
+    level=LOG_LEVEL,
+    filter=make_filter("stdout"),
+)
+
+# 记录信号
+signal_logger = logger.bind(name="signal")
+# 记录收益
+rr_logger = logger.bind(name="rr")
+# 标准输出
+stdout_logger = logger.bind(name="stdout")
+########
+
 
 DATA_DIR = Path(".") / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -66,7 +169,7 @@ def calc_indicator(quarter_data: pd.DataFrame):
 
     close_se = quarter_data["close"]
     # print(close_se)
-    LOGRR: pd.Series = hmmquant.utils.get_logrr(close_se)
+    LOGRR: pd.Series = get_logrr(close_se)  # type:ignore
     RSI: pd.Series = talib.RSI(close_se, timeperiod=14)  # type:ignore
     return pd.DataFrame(
         {
@@ -189,8 +292,8 @@ def emit_signal(
     # 只关心当前最后一个隐藏状态，我们用它来预测下一个状态是属于涨组还是跌组
     last_state = state[-1]
 
-    r = hmmquant.utils.get_all_state_rr(all_data["LOGRR"][start:end], state)
-    state_group = hmmquant.model.distinguish_state(r, 1, 1)
+    r = get_all_state_rr(all_data["LOGRR"][start:end], state)
+    state_group = distinguish_state(r, 1, 1)
 
     if last_state in state_group.rise_state:
         sig = 1
@@ -241,8 +344,8 @@ def job_function():
         last_sig = 0
     with open(DATA_DIR / "last_sig.txt", "w", encoding="utf8") as f:
         f.write(str(sig))
-    hmmquant.utils.stdout_logger.info(f"{all_data.index[-1]},{sig}")
-    hmmquant.utils.signal_logger.info(f"{all_data.index[-1]},{sig}")
+    stdout_logger.info(f"{all_data.index[-1]},{sig}")
+    signal_logger.info(f"{all_data.index[-1]},{sig}")
 
     # 纯多在上个时段收益
     long_rr = float(all_data["LOGRR"].to_list()[-1])
@@ -254,7 +357,7 @@ def job_function():
     else:
         strategy_rr = -long_rr
 
-    hmmquant.utils.rr_logger.info(f"{all_data.index[-1]},{strategy_rr},{long_rr}")
+    rr_logger.info(f"{all_data.index[-1]},{strategy_rr},{long_rr}")
 
 
 state_num = 4

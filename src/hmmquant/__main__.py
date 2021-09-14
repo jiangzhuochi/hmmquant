@@ -25,7 +25,7 @@ if __name__ == "__main__":
         # 间隔 every_group_len 估计一次模型
         every_group_len=320,
         return_indicator="yearr",
-        output="sig"
+        # output="sig"
     )
 
     train_min_len_range = range(17 * 10, 17 * 35, 17 * 50)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             egl_dict[every_group_len] = ret
         tml_dict[train_min_len] = egl_dict
 
-    backtest_df = pd.DataFrame(tml_dict)
-    backtest_df.index.name = "every_group_len"
-    backtest_df.columns.name = "train_min_len"
-    utils.draw_heatmap(backtest_df, name=grid_search_name)
+    # backtest_df = pd.DataFrame(tml_dict)
+    # backtest_df.index.name = "every_group_len"
+    # backtest_df.columns.name = "train_min_len"
+    # utils.draw_heatmap(backtest_df, name=grid_search_name)
