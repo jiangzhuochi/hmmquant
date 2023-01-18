@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 from loguru import logger as _logger
+from scipy import stats
 
 if TYPE_CHECKING:
     from loguru import Logger
@@ -21,6 +22,29 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from hmmlearn import hmm
 
 StateGroup = namedtuple("StateGroup", ["rise_state", "fall_state", "shock_state"])
+
+
+def normalization(raw_data: Union[pd.Series, pd.DataFrame], plus=2) -> pd.DataFrame:
+    def _norm(se: pd.Series):
+        # z_score标准化
+        mean, std = se.describe()[["mean", "std"]]
+        z_score_scaling = (se - mean) / std
+
+        # minmax标准化
+        ma, mi = z_score_scaling.describe()[["max", "min"]]
+        min_max_scaling = (z_score_scaling - mi) / (ma - mi) + plus
+
+        # 使用boxcox
+        boxcoxed_data, _ = stats.boxcox(min_max_scaling)  # type: ignore
+        return pd.Series(boxcoxed_data, index=se.index)
+
+    # print(raw_data)
+    raw_data = pd.DataFrame(raw_data)
+    # print(raw_data)
+    if isinstance(raw_data, pd.Series):
+        return pd.DataFrame(_norm(raw_data))
+    else:
+        return raw_data.apply(_norm)
 
 
 def get_logrr(close: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
@@ -238,7 +262,7 @@ def create_model_with_time(only_indicator_df: pd.DataFrame):
     start, *_ = needed_df.index
 
     train = needed_df
-    train_np = hmmquant.utils.normalization(train, plus=2).values  # type:ignore
+    train_np = normalization(train, plus=2).values  # type:ignore
     model = run_model(train_np, state_num)
 
     # 测试用
@@ -287,7 +311,7 @@ def emit_signal(
     ob_df = all_data[indicator_list].loc[model_estimation_time:]
     start, *_, end = ob_df.index
     # print(ob_df)
-    ob_np = hmmquant.utils.normalization(ob_df, plus=2).values  # type:ignore
+    ob_np = normalization(ob_df, plus=2).values  # type:ignore
     _, state = model.decode(ob_np, algorithm="viterbi")
     # 只关心当前最后一个隐藏状态，我们用它来预测下一个状态是属于涨组还是跌组
     last_state = state[-1]

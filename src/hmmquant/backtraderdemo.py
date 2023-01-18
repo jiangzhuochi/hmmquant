@@ -13,6 +13,25 @@ sig_df = pd.read_csv(
     "./csv/RSI/sig,4,170,340.csv", index_col=0, parse_dates=["quarter_time"]
 )
 
+def takeprofit(sig_df):
+
+    n = 17
+    new_sig = {}
+    tp = False
+    for i, (k, v) in enumerate(sig_df["0"].items()):
+        if i < n:
+            new_sig[k] = v
+            continue
+        if all(sig_df.iloc[i - 5 : i, 0] == 1) or all(sig_df.iloc[i - 5 : i, 0] == -1):
+            # 连续五个看涨
+            new_sig[k] = 0
+            tp = True
+            continue
+        new_sig[k] = v
+    return pd.DataFrame({'sig':new_sig})
+
+# sig_df = takeprofit(sig_df)
+
 # backtrader 简直是 linter 杀手233
 class MyHLOC(btfeeds.GenericCSVData):  # type: ignore
 
@@ -90,6 +109,8 @@ class TestStrategy(bt.Strategy):
             self.buy()
         elif c_sig == -1:
             self.sell()
+        else:
+            self.close()
         self.log("Close, %.4f" % self.dataclose[0])
 
 

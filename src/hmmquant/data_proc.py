@@ -21,6 +21,7 @@ def update_data(update=True) -> pd.DataFrame:
     close_se = data["last"]
     high_se = data["high"]
     low_se = data["low"]
+    total_volume_trade = data["total_volume_trade"]
 
     LOGRR: pd.Series = utils.get_logrr(close_se)
     MA5: pd.Series = talib.SMA(close_se, timeperiod=5)  # type:ignore
@@ -41,6 +42,7 @@ def update_data(update=True) -> pd.DataFrame:
             "MACD": MACD,
             "CCI": CCI,
             "RSI": RSI,
+            "VOLUME": total_volume_trade,
         }
     ).dropna()
     df.to_pickle(str(DATA_DIR / name))
