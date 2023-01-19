@@ -180,7 +180,7 @@ def get_data() -> pd.DataFrame:
     )
     # 如果现在的时间在 df 最后一行的时间之前
     # 就抛弃最后一行
-    if (datetime.now() - df.index[-1]).total_seconds() < 0:
+    if (datetime.now() - df.index[-1]).total_seconds() < 0:  # type:ignore
         df = df.head(-1)
     return df
 
@@ -270,7 +270,7 @@ def create_model_with_time(only_indicator_df: pd.DataFrame):
     ############
 
     model_with_time = ModelWithTime(
-        _model=model, _time=start.strftime(r"%Y-%m-%d %H:%M")
+        _model=model, _time=start.strftime(r"%Y-%m-%d %H:%M")  # type:ignore
     )
     # 保存模型
     with open(DATA_DIR / "model.pkl", "wb") as f:

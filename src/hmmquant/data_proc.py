@@ -17,11 +17,11 @@ def update_data(update=True) -> pd.DataFrame:
     if (DATA_DIR / name).is_file() and not update:
         return pd.read_pickle(DATA_DIR / name)
 
-    data = pd.read_csv("./data/quarter.csv", index_col=0, parse_dates=True)
-    close_se = data["last"]
-    high_se = data["high"]
-    low_se = data["low"]
-    total_volume_trade = data["total_volume_trade"]
+    data = pd.read_csv(DATA_DIR / "data_wind.csv", index_col=0, parse_dates=True)
+    high_se = data["HIGH"]
+    low_se = data["LOW"]
+    close_se = data["CLOSE"]
+    amount_se = data["AMOUNT"]
 
     LOGRR: pd.Series = utils.get_logrr(close_se)
     MA5: pd.Series = talib.SMA(close_se, timeperiod=5)  # type:ignore
@@ -42,10 +42,9 @@ def update_data(update=True) -> pd.DataFrame:
             "MACD": MACD,
             "CCI": CCI,
             "RSI": RSI,
-            "VOLUME": total_volume_trade,
         }
     ).dropna()
-    df.to_pickle(str(DATA_DIR / name))
+    df.to_pickle(DATA_DIR / name)
     return df
 
 

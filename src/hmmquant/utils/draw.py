@@ -52,7 +52,7 @@ def draw_scatter(state, state_group, index_date, close):
     state 状态序列
     state_group 状态所在的组，涨还是跌
     index_date 要画图的时间序列索引
-    close 价格走势，时间跨度要包含index_date的跨度
+    close 价格走势, 时间跨度要包含index_date的跨度
     """
     color_list = []
     for s in state:
@@ -73,7 +73,7 @@ def draw_scatter(state, state_group, index_date, close):
         index_x, close[index_date[0] : index_date[-1]].values, color=color_list, s=7  # type: ignore
     )
     plt.show()
-    fig.savefig(IMG_DIR / "scatter.png", dpi=300)
+    fig.savefig(IMG_DIR / "scatter.png", dpi=300)  # type:ignore
 
 
 @save_with_root(IMG_DIR)

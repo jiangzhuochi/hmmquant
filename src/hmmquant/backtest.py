@@ -10,6 +10,7 @@ from hmmlearn import hmm
 
 from hmmquant import model, utils
 from hmmquant.data_proc import INDICATOR
+from hmmquant.params import *
 from hmmquant.utils import CPUs
 
 LOGRR = INDICATOR["LOGRR"]
@@ -53,7 +54,7 @@ def calc_next_rr(
     "一维的话 _d 是一个 Series"
 
     start, *_, second_end, end = _d.index
-    print(end)
+    # print(end)
     # 切片，做训练集
     train = _d[:-1]
     train_np = utils.normalization(train, plus=2).values  # type:ignore
@@ -71,9 +72,9 @@ def calc_next_rr(
 
     if last_state in state_group.rise_state:
         # 记录收益率，以及信号
-        return LOGRR[end], 1
+        return LOGRR[end], 1  # type:ignore
     elif last_state in state_group.fall_state:
-        return -LOGRR[end], -1
+        return -LOGRR[end], -1  # type:ignore
     else:
         return 0, 0
 
@@ -86,10 +87,9 @@ def _backtest_inner(
     data: pd.DataFrame,
     state_num: int,
     output: Literal["rr", "sig"] = "rr",
+    # 回测组名称
 ):
-    """根据 is_estimate_once 的真假做出不同的行为
-    True -> 在本函数估计一次
-    False -> 在 calc_next_rr 里每次都估计"""
+    """"""
 
     # 注意 num 的数量是 训练集个数 + 1 下面要减去
     train = data[start : start + num - 1]
@@ -129,17 +129,19 @@ def backtest(
     """every_group_len 表明间隔 every_group_len 估计一次模型"""
 
     strategy_name = [
-        f"{'-'.join(all_data.columns)}"
+        f"{'-'.join(all_data.columns)}"  # type:ignore
         if isinstance(all_data, pd.DataFrame)
         else f"{all_data.name}",  # type:ignore
         f"{state_num},{train_min_len},{every_group_len}",
     ]
-
     with Pool(processes=CPUs) as p:
         rr = pd.concat(
             p.starmap(
                 partial(
-                    _backtest_inner, data=all_data, state_num=state_num, output=output
+                    _backtest_inner,
+                    data=all_data,
+                    state_num=state_num,
+                    output=output,
                 ),
                 utils.calc_backtest_params2(
                     data_len=len(all_data),

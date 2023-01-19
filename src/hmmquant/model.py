@@ -48,7 +48,6 @@ def run_model(training_set: np.ndarray, state_num: int = 3) -> hmm.GaussianHMM:
     if len(covars_.shape) == 1:
         covars_ = covars_.reshape(-1, 1, 1)
     # print(covars_)
-    
 
     # print("训练前")
     # print(f"{means_=}")

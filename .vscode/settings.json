@@ -1,5 +1,4 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
     "files.exclude": {
         ".venv": true,
         ".pytest_cache": true,
